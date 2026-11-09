@@ -1,0 +1,199 @@
+{
+  "model": {
+    "name": "effb0-ens5-v1",
+    "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
+    "temperature": 1.0728,
+    "t_low": 0.2,
+    "t_high": 0.5,
+    "band_target": "leukemic miss rate <= 2% on validation subjects",
+    "onnx_mb": 75.6
+  },
+  "data": {
+    "images": 12068,
+    "subjects": 92,
+    "patient_ids": 100,
+    "splits": {
+      "train": {
+        "images": 7844,
+        "subjects": 48,
+        "leukemic": 5228
+      },
+      "test": {
+        "images": 2414,
+        "subjects": 26,
+        "leukemic": 1609
+      },
+      "val": {
+        "images": 1810,
+        "subjects": 18,
+        "leukemic": 1206
+      }
+    },
+    "corrupt_removed": 350,
+    "duplicates_removed": 110,
+    "merged_groups": 4
+  },
+  "headline": {
+    "split": "validation, 18 subjects",
+    "pr_auc": 0.9737394217322837,
+    "roc_auc": 0.952181696374639,
+    "pr_auc_ci": [
+      0.906,
+      0.994
+    ],
+    "ece": 0.021033921719418727,
+    "ece_ci": [
+      0.018970018141262018,
+      0.10413403458002596
+    ]
+  },
+  "models": [
+    {
+      "name": "EfficientNet-B0 (seed 42)",
+      "pr_auc": 0.9709973124826937,
+      "pr_auc_ci": [
+        0.899,
+        0.993
+      ],
+      "roc_auc": 0.9508967304756571,
+      "roc_auc_ci": [
+        0.845,
+        0.977
+      ],
+      "recall": 0.9112769485903814,
+      "specificity": 0.8493377483443708,
+      "ece": 0.04250363561281742
+    },
+    {
+      "name": "MobileNetV3-Large",
+      "pr_auc": 0.9704175831045105,
+      "pr_auc_ci": [
+        0.889,
+        0.993
+      ],
+      "roc_auc": 0.9459504354606657,
+      "roc_auc_ci": [
+        0.873,
+        0.97
+      ],
+      "recall": 0.8839137645107794,
+      "specificity": 0.859271523178808,
+      "ece": 0.06457538268780888
+    },
+    {
+      "name": "DINOv2 ViT-S/14",
+      "pr_auc": 0.9611482292253605,
+      "pr_auc_ci": [
+        0.88,
+        0.991
+      ],
+      "roc_auc": 0.9339876225934347,
+      "roc_auc_ci": [
+        0.839,
+        0.965
+      ],
+      "recall": 0.8731343283582089,
+      "specificity": 0.8493377483443708,
+      "ece": 0.08007537661289625
+    },
+    {
+      "name": "Small CNN from scratch",
+      "pr_auc": 0.9477869821489727,
+      "pr_auc_ci": [
+        0.776,
+        0.993
+      ],
+      "roc_auc": 0.9151867593599333,
+      "roc_auc_ci": [
+        0.789,
+        0.974
+      ],
+      "recall": 0.9361525704809287,
+      "specificity": 0.7218543046357616,
+      "ece": 0.026296826170951616
+    },
+    {
+      "name": "Frozen features + logistic regression",
+      "pr_auc": 0.8917027888283859,
+      "pr_auc_ci": [
+        0.713,
+        0.971
+      ],
+      "roc_auc": 0.8496809550481588,
+      "roc_auc_ci": [
+        0.678,
+        0.91
+      ],
+      "recall": 0.8565505804311775,
+      "specificity": 0.6837748344370861,
+      "ece": 0.06927699456396487
+    }
+  ],
+  "calibration": [
+    {
+      "label": "Single model, raw",
+      "ece": 0.04250363561281742,
+      "nll": 0.2752951345377157
+    },
+    {
+      "label": "Single model, temperature scaled",
+      "ece": 0.02922169016336189,
+      "nll": 0.2658041284151078
+    },
+    {
+      "label": "5-seed ensemble, raw",
+      "ece": 0.021033921719418727,
+      "nll": 0.25752638870799965
+    },
+    {
+      "label": "5-seed ensemble, temperature scaled",
+      "ece": 0.0231927498937986,
+      "nll": 0.2620977203128365
+    }
+  ],
+  "band": {
+    "fixed": {
+      "referral_rate": 0.0,
+      "miss_rate": 0.07545605306799337,
+      "false_alarm_rate": 0.18211920529801323
+    },
+    "threshold_only": {
+      "threshold": 0.19,
+      "referral_rate": 0.0,
+      "miss_rate": 0.01990049751243781,
+      "false_alarm_rate": 0.34271523178807944
+    },
+    "random": {
+      "referral_rate": 0.08011049723756906,
+      "miss_rate": 0.06945356550580431,
+      "miss_rate_sd": 0.0021475599797312894,
+      "misses_avoided_per_100_referred": 4.992413793103453
+    },
+    "band": {
+      "referral_rate": 0.08011049723756906,
+      "miss_rate": 0.02902155887230514,
+      "false_alarm_rate": 0.1870860927152318,
+      "auto_accuracy": 0.9111111111111111,
+      "target_miss_rate": 0.02,
+      "n_referred": 145,
+      "misses_avoided_per_100_referred": 38.62068965517242
+    }
+  },
+  "explain": {
+    "gradcam_enrichment": 2.458659817761179,
+    "insertion": {
+      "gradcam": 0.8602632446349598,
+      "ig": 0.6498297949860031,
+      "random": 0.5307139412051766,
+      "random_cell": 0.8677949468875303
+    },
+    "size_rho_normal_seeds": [
+      0.6269892652789884,
+      0.7214733644516204
+    ],
+    "size_rho_scalejit": 0.6190499238407847
+  },
+  "external": null,
+  "test": null,
+  "disclaimer": "Research demo. Not for clinical use."
+}
