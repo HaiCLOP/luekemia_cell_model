@@ -41,7 +41,7 @@ tests/                     leakage, transforms, metrics, API contract
 scripts/run_all.ps1        reproduces every number and figure
 ```
 
-## Reproduce (Windows, GTX 1650, everything on drive E)
+## Reproduce 
 
 ```powershell
 python -m venv .venv
