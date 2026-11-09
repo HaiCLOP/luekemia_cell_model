@@ -1,0 +1,50 @@
+{
+  "name": "effb0-ens5-v1",
+  "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "input": {
+    "size": 224,
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "resize": "bilinear, antialiased"
+  },
+  "temperature": 1.0728,
+  "t_low": 0.2,
+  "t_high": 0.5,
+  "band_target": "leukemic miss rate <= 2% on validation subjects",
+  "metrics": {
+    "split": "validation (18 subjects); test set not yet evaluated",
+    "pr_auc": 0.9737394217322837,
+    "roc_auc": 0.952181696374639,
+    "ece_calibrated": 0.0231927498937986,
+    "band_crossfit": {
+      "referral_rate": 0.08011049723756906,
+      "miss_rate": 0.02902155887230514,
+      "false_alarm_rate": 0.1870860927152318,
+      "auto_accuracy": 0.9111111111111111,
+      "target_miss_rate": 0.02,
+      "n_referred": 145,
+      "misses_avoided_per_100_referred": 38.62068965517242
+    }
+  },
+  "git_sha": "nogit",
+  "config_hash": "a3ee6923173a",
+  "onnx_file": "effb0-ens5-v1.onnx",
+  "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
+  "exported": "2026-11-09T18:18:20.894193+00:00",
+  "disclaimer": "Research demo. Not for clinical use."
+}
