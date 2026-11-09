@@ -1,0 +1,36 @@
+# environment
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+.env.*
+!.env.example
+
+# data and weights (never commit)
+data/*
+!data/splits.csv
+!data/.gitkeep
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.bmp
+
+# web
+web/node_modules/
+web/.next/
+web/tsconfig.tsbuildinfo
+web/.vercel/
+
+# runtime state and local tooling
+reports/live/
+reports/logs/
+.claude/
+.pytest_cache/
+dist/
+
+# misc
+.DS_Store
+Thumbs.db

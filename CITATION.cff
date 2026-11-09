@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this code or the trained weights, please cite it as below, and cite the C-NMC 2019 dataset."
+title: "Cell Triage: a leukemia cell classifier with calibrated refer-to-expert triage"
+authors:
+  - family-names: Srivastava
+    given-names: Arnav
+    affiliation: HaiCLOP Labs
+license: MIT
+version: 1.0.0
+date-released: 2026-11-10
+keywords:
+  - acute lymphoblastic leukemia
+  - medical imaging
+  - calibration
+  - selective prediction
+references:
+  - type: dataset
+    title: "ALL Challenge dataset of ISBI 2019 (C-NMC 2019)"
+    authors:
+      - family-names: Mourya
+        given-names: S.
+      - family-names: Kant
+        given-names: S.
+      - family-names: Kumar
+        given-names: P.
+      - family-names: Gupta
+        given-names: A.
+      - family-names: Gupta
+        given-names: R.
+    publisher:
+      name: The Cancer Imaging Archive
+    doi: 10.7937/tcia.2019.dc64i46r
+    year: 2019

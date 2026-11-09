@@ -1,0 +1,64 @@
+# Single source of truth for every run. Paths default to the E drive (C stays untouched).
+seed: 42
+
+paths:
+  data_root: E:/datasets/cnmc          # exported images + manifest.csv
+  external_root: E:/datasets/allidb    # ALL-IDB2, external evaluation only
+  splits_csv: data/splits.csv
+  checkpoints: E:/Luekemia/checkpoints
+  reports: reports
+
+hf_datasets:
+  - repo: dwb2023/cnmc-leukemia-2019
+    split: train
+  - repo: dwb2023/cnmc-leukemia-2019-test
+    split: test
+
+split:
+  # Patient-level roles. Fractions are of patients, stratified by patient label.
+  test_frac: 0.20
+  val_frac: 0.15
+  n_folds: 5            # folds inside the train pool (for CV ablations)
+
+data:
+  img_size: 224
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  num_workers: 6                 # measured: 2 -> 69 img/s, 6 -> 187 img/s (PNG decode is the bottleneck)
+  persistent_workers: true
+
+train:
+  arch: efficientnet_b0          # efficientnet_b0 | mobilenetv3_large_100 | vit_small_patch14_dinov2 | small_cnn
+  pretrained: true
+  batch_size: 16
+  grad_accum: 2
+  amp: false                     # GTX 16xx: fp16 cuDNN kernels return NaN at some batch sizes (verified); no tensor cores, so fp32 costs little
+  stage1_epochs: 5               # frozen backbone, head only
+  stage1_lr: 1.0e-3
+  stage2_epochs: 25              # unfreeze last blocks
+  stage2_lr: 1.0e-4
+  unfreeze_last: 3               # number of trailing backbone stages to unfreeze
+  weight_decay: 1.0e-4
+  early_stop_patience: 5
+  early_stop_metric: pr_auc
+  imbalance: weighted_loss       # weighted_loss | weighted_sampler | none
+  label_smoothing: 0.0           # main run uses none (it distorts calibration)
+  dropout: 0.2                   # before head; also used for MC dropout
+  augment: geometric             # none | geometric | geometric_hed | geometric_scale
+  max_steps: null                # set small for smoke tests
+
+calibration:
+  ece_bins: 15
+  mc_passes: 20
+  ensemble_seeds: [42, 43, 44, 45, 46]
+
+band:
+  temperature: 1.0728       # ensemble logit temperature (src.triage)
+  target_miss_rate: 0.02         # leukemic miss rate on validation patients
+  t_low: 0.2000            # chosen on all validation subjects (src.triage)
+  t_high: 0.5000
+
+eval:
+  bootstrap_iters: 1000
+
+disclaimer: "Research demo. Not for clinical use."
