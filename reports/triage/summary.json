@@ -1,0 +1,159 @@
+{
+  "note": "Validation only. Fitted quantities are cross-fitted over subject groups (3 folds).",
+  "calibration": [
+    {
+      "model": "EfficientNet-B0 (seed 42)",
+      "variant": "raw",
+      "ece": 0.04250363561281742,
+      "nll": 0.2752951345377157,
+      "brier": 0.08020347534034107,
+      "pr_auc": 0.9709973124826937,
+      "roc_auc": 0.9508967304756571,
+      "ece_ci": [
+        0.026309694046998493,
+        0.10934572474268654
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "EfficientNet-B0 (seed 42)",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.02922169016336189,
+      "nll": 0.2658041284151078,
+      "brier": 0.0795614213916822,
+      "pr_auc": 0.9692145101694228,
+      "roc_auc": 0.9488416087333751,
+      "ece_ci": [
+        0.019749215592027313,
+        0.11186811435110215
+      ],
+      "T_folds": [
+        1.349,
+        1.582,
+        1.27
+      ]
+    },
+    {
+      "model": "MobileNetV3-L",
+      "variant": "raw",
+      "ece": 0.06457538268780888,
+      "nll": 0.30936208404702376,
+      "brier": 0.09256171497361036,
+      "pr_auc": 0.9704175831045105,
+      "roc_auc": 0.9459504354606657,
+      "ece_ci": [
+        0.03424722864729159,
+        0.1447625047709718
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "MobileNetV3-L",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.06350242034101565,
+      "nll": 0.3019527641606205,
+      "brier": 0.09191563876591413,
+      "pr_auc": 0.9692105045081876,
+      "roc_auc": 0.9441575236400777,
+      "ece_ci": [
+        0.02740652097594478,
+        0.16392289077488056
+      ],
+      "T_folds": [
+        1.369,
+        1.516,
+        1.2
+      ]
+    },
+    {
+      "model": "Ensemble of 5 B0 seeds",
+      "variant": "raw",
+      "ece": 0.021033921719418727,
+      "nll": 0.25752638870799965,
+      "brier": 0.07917108445633284,
+      "pr_auc": 0.9737394217322837,
+      "roc_auc": 0.952181696374639,
+      "ece_ci": [
+        0.018970018141262018,
+        0.10413403458002596
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "Ensemble of 5 B0 seeds",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.0231927498937986,
+      "nll": 0.2620977203128365,
+      "brier": 0.07981767835011053,
+      "pr_auc": 0.9722092615241573,
+      "roc_auc": 0.9502830768892844,
+      "ece_ci": [
+        0.02249256262935729,
+        0.10691286460237898
+      ],
+      "T_folds": [
+        1.025,
+        1.212,
+        0.978
+      ]
+    },
+    {
+      "model": "EfficientNet-B0 (seed 42)",
+      "variant": "MC dropout (20 passes)",
+      "ece": 0.03981691810376123,
+      "nll": 0.2746754718290594,
+      "brier": 0.08010135842437267,
+      "pr_auc": 0.9709540241100696,
+      "roc_auc": 0.9509214413583298,
+      "ece_ci": [
+        0.022834110706312322,
+        0.10808201791235603
+      ],
+      "mean_std": 0.009782173670828342
+    }
+  ],
+  "deployed": {
+    "model": "ensemble of 5 EfficientNet-B0 seeds",
+    "temperature": 1.0728036637334126,
+    "band": {
+      "t_low": 0.2,
+      "t_high": 0.5,
+      "referral_rate": 0.0861878453038674,
+      "miss_rate": 0.01990049751243781,
+      "false_alarm_rate": 0.18211920529801323,
+      "auto_accuracy": 0.9189842805320435,
+      "coverage": 0.9138121546961326,
+      "target_miss_rate": 0.02
+    }
+  },
+  "band_crossfit": {
+    "referral_rate": 0.08011049723756906,
+    "miss_rate": 0.02902155887230514,
+    "false_alarm_rate": 0.1870860927152318,
+    "auto_accuracy": 0.9111111111111111,
+    "target_miss_rate": 0.02,
+    "n_referred": 145,
+    "misses_avoided_per_100_referred": 38.62068965517242
+  },
+  "fixed_threshold_0.5": {
+    "referral_rate": 0.0,
+    "miss_rate": 0.07545605306799337,
+    "false_alarm_rate": 0.18211920529801323
+  },
+  "random_referral_same_rate": {
+    "referral_rate": 0.08011049723756906,
+    "miss_rate": 0.06945356550580431,
+    "miss_rate_sd": 0.0021475599797312894,
+    "misses_avoided_per_100_referred": 4.992413793103453
+  },
+  "threshold_only_for_target_miss": {
+    "threshold": 0.19,
+    "referral_rate": 0.0,
+    "miss_rate": 0.01990049751243781,
+    "false_alarm_rate": 0.34271523178807944
+  },
+  "aurc": {
+    "ensemble_calibrated": 0.026935092039041805,
+    "single_raw": 0.026818789546935472
+  }
+}

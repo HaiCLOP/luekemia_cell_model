@@ -1,0 +1,140 @@
+{
+  "name": "smoke_effb0",
+  "arch": "efficientnet_b0",
+  "seed": 42,
+  "git_sha": "nogit",
+  "config_hash": "f100a8fdd517",
+  "started": "2026-11-09T11:12:59.198512+00:00",
+  "finished": "2026-11-09T11:14:38.701837+00:00",
+  "best_val": 0.8356998513538942,
+  "checkpoint": "E:\\Luekemia\\checkpoints\\smoke_effb0.pt",
+  "max_vram_mb": 828,
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_root": "E:/datasets/cnmc",
+      "external_root": "E:/datasets/allidb",
+      "splits_csv": "data/splits.csv",
+      "checkpoints": "E:/Luekemia/checkpoints",
+      "reports": "reports"
+    },
+    "hf_datasets": [
+      {
+        "repo": "dwb2023/cnmc-leukemia-2019",
+        "split": "train"
+      },
+      {
+        "repo": "dwb2023/cnmc-leukemia-2019-test",
+        "split": "test"
+      }
+    ],
+    "split": {
+      "test_frac": 0.2,
+      "val_frac": 0.15,
+      "n_folds": 5
+    },
+    "data": {
+      "img_size": 224,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "num_workers": 2,
+      "persistent_workers": true
+    },
+    "train": {
+      "arch": "efficientnet_b0",
+      "pretrained": true,
+      "batch_size": 16,
+      "grad_accum": 2,
+      "amp": false,
+      "stage1_epochs": 5,
+      "stage1_lr": 0.001,
+      "stage2_epochs": 25,
+      "stage2_lr": 0.0001,
+      "unfreeze_last": 3,
+      "weight_decay": 0.0001,
+      "early_stop_patience": 5,
+      "early_stop_metric": "pr_auc",
+      "imbalance": "weighted_loss",
+      "label_smoothing": 0.0,
+      "dropout": 0.2,
+      "augment": "geometric",
+      "max_steps": 60
+    },
+    "calibration": {
+      "ece_bins": 15,
+      "mc_passes": 20,
+      "ensemble_seeds": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    "band": {
+      "target_miss_rate": 0.02,
+      "t_low": null,
+      "t_high": null
+    },
+    "eval": {
+      "bootstrap_iters": 1000
+    },
+    "disclaimer": "Research demo. Not for clinical use."
+  },
+  "log": [
+    {
+      "stage": "stage1",
+      "epoch": 0,
+      "train_loss": 0.3744477498034636,
+      "sec": 86.0,
+      "img_per_sec": 22.3,
+      "val_n": 1810,
+      "val_recall": 0.7495854063018242,
+      "val_precision": 0.8144144144144144,
+      "val_specificity": 0.6589403973509934,
+      "val_f1": 0.7806563039723662,
+      "val_accuracy": 0.7193370165745856,
+      "val_balanced_accuracy": 0.7042629018264088,
+      "val_roc_auc": 0.7663338934466739,
+      "val_pr_auc": 0.8356998513538942,
+      "val_ece": 0.11721598397222817,
+      "val_nll": 0.5525884860191433,
+      "val_brier": 0.18581499160947304,
+      "val_tp": 904,
+      "val_fp": 206,
+      "val_tn": 398,
+      "val_fn": 302
+    },
+    {
+      "stage": "stage2",
+      "epoch": 0,
+      "train_loss": 0.2929878234863281,
+      "sec": 13.0,
+      "img_per_sec": 1.2,
+      "val_n": 1810,
+      "val_recall": 0.7280265339966833,
+      "val_precision": 0.8159851301115242,
+      "val_specificity": 0.6721854304635762,
+      "val_f1": 0.7695004382120947,
+      "val_accuracy": 0.7093922651933702,
+      "val_balanced_accuracy": 0.7001059822301297,
+      "val_roc_auc": 0.7646562990785587,
+      "val_pr_auc": 0.8343521910029338,
+      "val_ece": 0.12778768576083915,
+      "val_nll": 0.5610254724230341,
+      "val_brier": 0.18964548232569836,
+      "val_tp": 878,
+      "val_fp": 198,
+      "val_tn": 406,
+      "val_fn": 328
+    }
+  ]
+}

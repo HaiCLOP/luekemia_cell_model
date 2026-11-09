@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Training Console · Leukemia Classifier</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ef8a73' opacity='.35'/%3E%3Cpath d='M16 7c5 0 9 3.5 9 8.5S21.5 25 16.5 25 7 21 7 16s4-9 9-9z' fill='%235b7fd6'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="21" class="logo-cyto"/>
+        <path class="logo-nuc" d="M24 11c8 0 13 5.5 13 13s-6 13-13.5 13S11 31 11 23.5 16 11 24 11z"/>
+        <circle cx="20" cy="20" r="2.4" class="logo-nucleolus"/>
+        <circle cx="28" cy="27" r="1.8" class="logo-nucleolus"/>
+      </svg>
+      <div>
+        <h1>Training console</h1>
+        <p class="sub">Leukemia cell classifier · C-NMC 2019 · ALL vs normal · research demo, not for clinical use</p>
+      </div>
+    </div>
+    <div class="status-block">
+      <div class="status-line"><span class="pulse" id="pulse" aria-hidden="true"></span><span id="state-text">connecting</span></div>
+      <div class="eta-line" id="queue-eta">estimating queue finish</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Row 1: current run + GPU -->
+    <section class="row r1">
+      <article class="card now" aria-labelledby="now-h">
+        <div class="card-head">
+          <h2 id="now-h">Now training</h2>
+          <span class="chip" id="run-id">–</span>
+        </div>
+        <div class="now-title" id="run-label">Waiting for a run</div>
+
+        <ol class="stepper" id="stepper" aria-label="Training stages">
+          <li data-stage="stage1"><span class="step-dot"></span><div><b>Stage 1</b><small>head only, backbone frozen</small></div></li>
+          <li data-stage="stage2"><span class="step-dot"></span><div><b>Stage 2</b><small>fine-tune last blocks</small></div></li>
+          <li data-stage="saved"><span class="step-dot"></span><div><b>Best checkpoint</b><small>re-scored on validation</small></div></li>
+        </ol>
+
+        <div class="now-body">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+              <circle cx="60" cy="60" r="50" class="ring-track"/>
+              <circle cx="60" cy="60" r="50" class="ring-stage" id="ring-stage"/>
+              <circle cx="60" cy="60" r="40" class="ring-track thin"/>
+              <circle cx="60" cy="60" r="40" class="ring-batch" id="ring-batch"/>
+            </svg>
+            <div class="ring-text">
+              <div class="ring-big" id="ring-epoch">–</div>
+              <div class="ring-small" id="ring-sub">epoch</div>
+            </div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi accent">
+              <span class="k-label">Best val PR-AUC</span>
+              <span class="k-val" id="k-best">–</span>
+              <span class="k-note" id="k-best-note">&nbsp;</span>
+            </div>
+            <div class="kpi">
+              <span class="k-label">Last epoch</span>
+              <span class="k-val" id="k-last">–</span>
+              <span class="k-note" id="k-last-note">&nbsp;</span>
+            </div>
+            <div class="kpi">
+              <span class="k-label">Early-stop patience</span>
+              <span class="dots" id="k-patience" aria-live="polite"></span>
+              <span class="k-note" id="k-patience-note">&nbsp;</span>
+            </div>
+            <div class="kpi">
+              <span class="k-label">Time left in run</span>
+              <span class="k-val" id="k-eta">–</span>
+              <span class="k-note" id="k-eta-note">&nbsp;</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="batchline">
+          <div class="bl-row"><span id="bl-text">Batch progress</span><span class="mono" id="bl-stats">–</span></div>
+          <div class="track" role="progressbar" aria-labelledby="bl-text" aria-valuemin="0" aria-valuemax="100" id="bl-track"><div class="fill" id="bl-fill"></div></div>
+        </div>
+      </article>
+
+      <article class="card gpu" aria-labelledby="gpu-h">
+        <div class="card-head"><h2 id="gpu-h">GPU</h2><span class="chip" id="gpu-name">–</span></div>
+        <div class="gauges">
+          <figure class="gauge"><svg viewBox="0 0 100 64" id="g-util"></svg><figcaption>Utilization</figcaption></figure>
+          <figure class="gauge"><svg viewBox="0 0 100 64" id="g-mem"></svg><figcaption>VRAM</figcaption></figure>
+          <figure class="gauge"><svg viewBox="0 0 100 64" id="g-temp"></svg><figcaption>Temperature</figcaption></figure>
+        </div>
+        <dl class="gpu-facts">
+          <div><dt>Core clock</dt><dd id="g-clock">–</dd></div>
+          <div><dt>Power</dt><dd id="g-power">–</dd></div>
+          <div><dt>Throughput</dt><dd id="g-ips">–</dd></div>
+        </dl>
+        <div class="spark-head"><span>Last 6 minutes</span><span class="legend"><i class="sw hx"></i>util <i class="sw eo"></i>temp</span></div>
+        <svg class="spark" id="gpu-spark" viewBox="0 0 300 70" preserveAspectRatio="none" aria-label="GPU utilization and temperature history"></svg>
+        <p class="hint" id="gpu-hint">&nbsp;</p>
+      </article>
+    </section>
+
+    <!-- Row 2: queue timeline -->
+    <section class="card" aria-labelledby="q-h">
+      <div class="card-head">
+        <h2 id="q-h">Overnight queue</h2>
+        <span class="muted" id="q-summary">–</span>
+      </div>
+      <div class="timeline" id="timeline" aria-hidden="true"></div>
+      <div class="tl-axis" id="tl-axis" aria-hidden="true"></div>
+      <ol class="jobs" id="jobs"></ol>
+    </section>
+
+    <!-- Row 3: curves -->
+    <section class="row r3">
+      <article class="card">
+        <div class="card-head"><h2>Current run · learning curves</h2>
+          <span class="legend"><i class="sw eo"></i>val PR-AUC <i class="sw hx"></i>val ROC-AUC <i class="sw ink dash"></i>train loss (right axis)</span></div>
+        <svg class="chart" id="ch-run" viewBox="0 0 640 260" aria-label="Learning curves for the current run"></svg>
+        <p class="hint">Dashed vertical line: backbone unfrozen. Ring marker: best epoch, the checkpoint that is kept.</p>
+      </article>
+      <article class="card">
+        <div class="card-head"><h2>All runs · val PR-AUC by epoch</h2></div>
+        <svg class="chart" id="ch-all" viewBox="0 0 640 260" aria-label="Validation PR-AUC curves of all runs"></svg>
+        <div class="legend wrap" id="all-legend"></div>
+      </article>
+    </section>
+
+    <!-- Row 4: leaderboard + data -->
+    <section class="row r4">
+      <article class="card">
+        <div class="card-head">
+          <h2>Leaderboard · validation</h2>
+          <div class="tabs" role="tablist" id="metric-tabs">
+            <button role="tab" data-m="pr_auc" aria-selected="true">PR-AUC</button>
+            <button role="tab" data-m="roc_auc">ROC-AUC</button>
+            <button role="tab" data-m="recall">Recall</button>
+            <button role="tab" data-m="specificity">Specificity</button>
+            <button role="tab" data-m="ece">ECE</button>
+          </div>
+        </div>
+        <svg class="forest" id="forest" viewBox="0 0 640 240" aria-label="Validation metric per run with 95% subject-clustered confidence intervals"></svg>
+        <p class="hint" id="forest-hint">Dot = point estimate at threshold 0.5. Whisker = 95% CI from resampling the 18 validation subjects 1000 times. Overlapping whiskers mean the difference is not established.</p>
+      </article>
+
+      <article class="card data" aria-labelledby="d-h">
+        <div class="card-head"><h2 id="d-h">Data</h2><span class="chip">patient-level splits</span></div>
+        <div class="big-nums">
+          <div><span class="bn" id="d-images">–</span><span class="bl">cell images</span></div>
+          <div><span class="bn" id="d-subjects">–</span><span class="bl">independent subjects</span></div>
+        </div>
+        <div id="d-splits" class="splits"></div>
+        <div class="legend"><i class="sw eo"></i>leukemic (ALL) <i class="sw hx"></i>normal (hem)</div>
+        <h3>Audit</h3>
+        <ul class="audit" id="d-audit"></ul>
+      </article>
+    </section>
+
+    <!-- Row 5: epoch table + log -->
+    <section class="row r5">
+      <article class="card">
+        <div class="card-head"><h2>Epoch log · current run</h2></div>
+        <div class="table-wrap">
+          <table id="epochs"><thead><tr><th>Stage</th><th>Ep</th><th>Loss</th><th>PR-AUC</th><th>ROC-AUC</th><th>Recall</th><th>ECE</th><th>Time</th></tr></thead><tbody></tbody></table>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-head"><h2>Console</h2><span class="chip mono" id="log-name">–</span></div>
+        <pre class="console" id="tail" tabindex="0" aria-label="Last lines of the run log"></pre>
+      </article>
+    </section>
+
+    <section class="card glossary" aria-labelledby="g-h">
+      <h2 id="g-h">Reading this page</h2>
+      <dl>
+        <div><dt>PR-AUC</dt><dd>Area under the precision-recall curve for the leukemic class. Model-selection metric. 0.667 = guessing (class prevalence).</dd></div>
+        <div><dt>ROC-AUC</dt><dd>Probability a random leukemic cell scores above a random normal cell. 0.5 = guessing.</dd></div>
+        <div><dt>Recall (ALL)</dt><dd>Share of leukemic cells flagged at threshold 0.5. A miss here is the costly error.</dd></div>
+        <div><dt>ECE</dt><dd>Expected calibration error, 15 bins. How far stated confidence is from observed accuracy. Lower is better.</dd></div>
+        <div><dt>Subject CI</dt><dd>Confidence interval from resampling whole subjects, because cells from one person are not independent.</dd></div>
+        <div><dt>Early stopping</dt><dd>Training stops after 5 epochs (8 for the scratch CNN) without a better val PR-AUC. Best epoch is kept.</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="foot">Reads <code>reports/</code> and <code>nvidia-smi</code> every 3 s · local only · validation numbers, the test set is untouched until the end</footer>
+  <script src="app.js"></script>
+</body>
+</html>

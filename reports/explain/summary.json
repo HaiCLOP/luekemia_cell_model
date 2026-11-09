@@ -1,0 +1,30 @@
+{
+  "n_images": 200,
+  "mean_cell_area": 0.16433304767219387,
+  "on_cell_share": {
+    "gradcam": 0.4019013527967036,
+    "ig": 0.9996526111768543
+  },
+  "gradcam_enrichment_median": 2.458659817761179,
+  "flagged_gradcam_not_focused_on_cell": 17,
+  "gradcam_lt_50pct_on_cell": 141,
+  "deletion_auc": {
+    "gradcam": 0.4905660151538905,
+    "ig": 0.5481774891091851,
+    "random": 0.5377020648456942,
+    "random_cell": 0.5080410602304619
+  },
+  "insertion_auc": {
+    "gradcam": 0.8602632446349598,
+    "ig": 0.6498297949860031,
+    "random": 0.5307139412051766,
+    "random_cell": 0.8677949468875303
+  },
+  "deletion_auc_sd": {
+    "gradcam": 0.389298940938452,
+    "ig": 0.16587569673923758,
+    "random": 0.35309163078157535,
+    "random_cell": 0.34756190170396684
+  },
+  "note": "Black baseline for deletion/insertion and for IG. IG gives zero attribution to pixels equal to the baseline, so its on-cell share is high by construction; Grad-CAM's on-cell share is the informative focus check."
+}

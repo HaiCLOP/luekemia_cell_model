@@ -1,0 +1,227 @@
+{
+  "val_metrics": {
+    "n": 1810,
+    "recall": 0.753731343283582,
+    "precision": 0.8527204502814258,
+    "specificity": 0.7400662251655629,
+    "f1": 0.8001760563380281,
+    "accuracy": 0.7491712707182321,
+    "balanced_accuracy": 0.7468987842245725,
+    "roc_auc": 0.8325645503168484,
+    "pr_auc": 0.8952794095556058,
+    "ece": 0.11926666407552261,
+    "nll": 0.4968547833828843,
+    "brier": 0.16484606373123886,
+    "tp": 909,
+    "fp": 157,
+    "tn": 447,
+    "fn": 297
+  },
+  "name": "abl_frozen_s42",
+  "arch": "efficientnet_b0",
+  "seed": 42,
+  "git_sha": "nogit",
+  "config_hash": "f22e072cfbad",
+  "started": "2026-11-09T15:41:06.965681+00:00",
+  "finished": "2026-11-09T15:44:44.720301+00:00",
+  "best_val": 0.8952794095556058,
+  "checkpoint": "E:\\Luekemia\\checkpoints\\abl_frozen_s42.pt",
+  "max_vram_mb": 813,
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_root": "E:/datasets/cnmc",
+      "external_root": "E:/datasets/allidb",
+      "splits_csv": "data/splits.csv",
+      "checkpoints": "E:/Luekemia/checkpoints",
+      "reports": "reports"
+    },
+    "hf_datasets": [
+      {
+        "repo": "dwb2023/cnmc-leukemia-2019",
+        "split": "train"
+      },
+      {
+        "repo": "dwb2023/cnmc-leukemia-2019-test",
+        "split": "test"
+      }
+    ],
+    "split": {
+      "test_frac": 0.2,
+      "val_frac": 0.15,
+      "n_folds": 5
+    },
+    "data": {
+      "img_size": 224,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "num_workers": 6,
+      "persistent_workers": true
+    },
+    "train": {
+      "arch": "efficientnet_b0",
+      "pretrained": true,
+      "batch_size": 16,
+      "grad_accum": 2,
+      "amp": false,
+      "stage1_epochs": 5,
+      "stage1_lr": 0.001,
+      "stage2_epochs": 0,
+      "stage2_lr": 0.0001,
+      "unfreeze_last": 3,
+      "weight_decay": 0.0001,
+      "early_stop_patience": 5,
+      "early_stop_metric": "pr_auc",
+      "imbalance": "weighted_loss",
+      "label_smoothing": 0.0,
+      "dropout": 0.2,
+      "augment": "geometric",
+      "max_steps": null
+    },
+    "calibration": {
+      "ece_bins": 15,
+      "mc_passes": 20,
+      "ensemble_seeds": [
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    "band": {
+      "target_miss_rate": 0.02,
+      "t_low": null,
+      "t_high": null
+    },
+    "eval": {
+      "bootstrap_iters": 1000
+    },
+    "disclaimer": "Research demo. Not for clinical use."
+  },
+  "log": [
+    {
+      "stage": "stage1",
+      "epoch": 0,
+      "train_loss": 0.34879103385064064,
+      "sec": 106.2,
+      "img_per_sec": 73.8,
+      "val_n": 1810,
+      "val_recall": 0.818407960199005,
+      "val_precision": 0.8218151540383014,
+      "val_specificity": 0.6456953642384106,
+      "val_f1": 0.8201080182800167,
+      "val_accuracy": 0.7607734806629834,
+      "val_balanced_accuracy": 0.7320516622187078,
+      "val_roc_auc": 0.7931548109342911,
+      "val_pr_auc": 0.8614864961124825,
+      "val_ece": 0.07923514586989486,
+      "val_nll": 0.5099720718339423,
+      "val_brier": 0.16792903102140225,
+      "val_tp": 987,
+      "val_fp": 214,
+      "val_tn": 390,
+      "val_fn": 219
+    },
+    {
+      "stage": "stage1",
+      "epoch": 1,
+      "train_loss": 0.3253043924059187,
+      "sec": 24.8,
+      "img_per_sec": 315.8,
+      "val_n": 1810,
+      "val_recall": 0.806799336650083,
+      "val_precision": 0.8438855160450998,
+      "val_specificity": 0.7019867549668874,
+      "val_f1": 0.8249258160237388,
+      "val_accuracy": 0.7718232044198895,
+      "val_balanced_accuracy": 0.7543930458084852,
+      "val_roc_auc": 0.8266943428552601,
+      "val_pr_auc": 0.88896857164974,
+      "val_ece": 0.09434380298812998,
+      "val_nll": 0.4868440738037908,
+      "val_brier": 0.15982178117214843,
+      "val_tp": 973,
+      "val_fp": 180,
+      "val_tn": 424,
+      "val_fn": 233
+    },
+    {
+      "stage": "stage1",
+      "epoch": 2,
+      "train_loss": 0.3147984512910551,
+      "sec": 25.0,
+      "img_per_sec": 313.2,
+      "val_n": 1810,
+      "val_recall": 0.8291873963515755,
+      "val_precision": 0.8396305625524769,
+      "val_specificity": 0.6837748344370861,
+      "val_f1": 0.8343763037129746,
+      "val_accuracy": 0.7806629834254144,
+      "val_balanced_accuracy": 0.7564811153943307,
+      "val_roc_auc": 0.8283925296256027,
+      "val_pr_auc": 0.8906594817003478,
+      "val_ece": 0.07669559679264326,
+      "val_nll": 0.4752335676489841,
+      "val_brier": 0.1548794846022627,
+      "val_tp": 1000,
+      "val_fp": 191,
+      "val_tn": 413,
+      "val_fn": 206
+    },
+    {
+      "stage": "stage1",
+      "epoch": 3,
+      "train_loss": 0.3080416939392382,
+      "sec": 27.0,
+      "img_per_sec": 289.9,
+      "val_n": 1810,
+      "val_recall": 0.753731343283582,
+      "val_precision": 0.8527204502814258,
+      "val_specificity": 0.7400662251655629,
+      "val_f1": 0.8001760563380281,
+      "val_accuracy": 0.7491712707182321,
+      "val_balanced_accuracy": 0.7468987842245725,
+      "val_roc_auc": 0.8325645503168484,
+      "val_pr_auc": 0.8952794095556058,
+      "val_ece": 0.11926666407552261,
+      "val_nll": 0.4968547833828843,
+      "val_brier": 0.16484606373123886,
+      "val_tp": 909,
+      "val_fp": 157,
+      "val_tn": 447,
+      "val_fn": 297
+    },
+    {
+      "stage": "stage1",
+      "epoch": 4,
+      "train_loss": 0.30750289732704356,
+      "sec": 28.7,
+      "img_per_sec": 272.9,
+      "val_n": 1810,
+      "val_recall": 0.7562189054726368,
+      "val_precision": 0.8507462686567164,
+      "val_specificity": 0.7350993377483444,
+      "val_f1": 0.800702370500439,
+      "val_accuracy": 0.7491712707182321,
+      "val_balanced_accuracy": 0.7456591216104906,
+      "val_roc_auc": 0.8309404961945239,
+      "val_pr_auc": 0.8939031436828506,
+      "val_ece": 0.11792887428324683,
+      "val_nll": 0.4972967762892747,
+      "val_brier": 0.16508998832885996,
+      "val_tp": 912,
+      "val_fp": 160,
+      "val_tn": 444,
+      "val_fn": 294
+    }
+  ]
+}

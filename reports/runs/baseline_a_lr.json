@@ -1,0 +1,27 @@
+{
+  "name": "baseline_a_lr",
+  "arch": "efficientnet_b0 frozen + logistic regression",
+  "C": 0.01,
+  "seed": 42,
+  "git_sha": "nogit",
+  "config_hash": "086248e42e7c",
+  "finished": "2026-11-09T11:25:38.516703+00:00",
+  "val_metrics": {
+    "n": 1810,
+    "recall": 0.8565505804311775,
+    "precision": 0.8439542483660131,
+    "specificity": 0.6837748344370861,
+    "f1": 0.8502057613168724,
+    "accuracy": 0.7988950276243094,
+    "balanced_accuracy": 0.7701627074341317,
+    "roc_auc": 0.8496809550481588,
+    "pr_auc": 0.8917027888283859,
+    "ece": 0.06927699470216284,
+    "nll": 0.45208507256680824,
+    "brier": 0.14010479901096626,
+    "tp": 1033,
+    "fp": 191,
+    "tn": 413,
+    "fn": 173
+  }
+}
