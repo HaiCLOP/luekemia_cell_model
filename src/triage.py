@@ -108,16 +108,24 @@ def mc_dropout(cfg) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mc", action="store_true")
+    ap.add_argument("--prefix", default="effb0_main",
+                    help="run-name prefix of the five seeds; anything other than effb0_main writes to its own folders "
+                         "and leaves the deployed temperature and band in config.yaml untouched")
     args = ap.parse_args()
     cfg = load_config()
     bins, target = cfg["calibration"]["ece_bins"], cfg["band"]["target_miss_rate"]
-    figs, tabs = resolve("reports/figures"), resolve("reports/tables")
+    main_model = args.prefix == "effb0_main"
+    suffix = "" if main_model else f"_{args.prefix}"
+    figs = resolve("reports/figures") if main_model else resolve("reports/figures") / args.prefix
+    tabs = resolve("reports/tables")
     figs.mkdir(parents=True, exist_ok=True)
+    if not main_model:
+        args.mc = False
 
     # ---------------- members and ensemble
     Z, y, g = [], None, None
     for s in SEEDS:
-        z, y_, g_ = load(f"effb0_main_s{s}")
+        z, y_, g_ = load(f"{args.prefix}_s{s}")
         if y is not None:
             assert np.array_equal(y, y_) and np.array_equal(g, g_), "val order differs between runs"
         Z.append(z); y, g = y_, g_
@@ -147,7 +155,7 @@ def main() -> None:
     mc = None
     if args.mc:
         mc = mc_dropout(cfg)
-    elif (resolve("reports/preds") / "effb0_mcdropout_s42_val.npz").exists():
+    elif main_model and (resolve("reports/preds") / "effb0_mcdropout_s42_val.npz").exists():
         d = np.load(resolve("reports/preds") / "effb0_mcdropout_s42_val.npz")
         mc = {"mean": d["mean"], "std": d["std"]}
     if mc is not None:
@@ -193,7 +201,7 @@ def main() -> None:
         "threshold_only_for_target_miss": thr_only,
         "aurc": {"ensemble_calibrated": aurc, "single_raw": aurc_raw},
     }
-    out = resolve("reports/triage")
+    out = resolve("reports/triage" + suffix)
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float))
 
@@ -202,7 +210,7 @@ def main() -> None:
     for r in rows:
         lines.append(f"| {r['model']} | {r['variant']} | {r['ece']:.4f} [{r['ece_ci'][0]:.3f}, {r['ece_ci'][1]:.3f}] | "
                      f"{r['nll']:.4f} | {r['brier']:.4f} | {r['pr_auc']:.4f} |")
-    (tabs / "calibration.md").write_text("\n".join(lines) + "\n")
+    (tabs / f"calibration{suffix}.md").write_text("\n".join(lines) + "\n")
     b = summary
     band_md = "\n".join([
         "| Policy (validation, cross-fitted) | Referred | Missed leukemic | False alarms on normal |",
@@ -212,7 +220,7 @@ def main() -> None:
         f"| Random referral at band rate | {100*rnd['referral_rate']:.1f}% | {100*rnd['miss_rate']:.2f}% | n/a |",
         f"| **Refer-to-expert band** | {100*band_cf['referral_rate']:.1f}% | {100*band_cf['miss_rate']:.2f}% | {100*band_cf['false_alarm_rate']:.1f}% |",
     ])
-    (tabs / "referral_band.md").write_text(band_md + "\n")
+    (tabs / f"referral_band{suffix}.md").write_text(band_md + "\n")
 
     # ---------------- figures
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.4), sharey=True)
@@ -246,6 +254,9 @@ def main() -> None:
     ax.legend(frameon=False, fontsize=9); fig.tight_layout(); fig.savefig(figs / "referral_band.png", dpi=160); plt.close(fig)
 
     # ---------------- write the deployed temperature and band back into the config
+    if not main_model:
+        print(json.dumps({"deployed": summary["deployed"], "band_crossfit": summary["band_crossfit"]}, indent=2, default=float))
+        return
     cfg_path = ROOT / "configs" / "config.yaml"
     txt = cfg_path.read_text(encoding="utf-8")
     txt = re.sub(r"t_low: .*", f"t_low: {band_final['t_low']:.4f}            # chosen on all validation subjects (src.triage)", txt, count=1)

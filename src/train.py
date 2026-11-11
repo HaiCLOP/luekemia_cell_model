@@ -119,7 +119,14 @@ def train(cfg: dict, name: str) -> dict:
     t = cfg["train"]
 
     train_df, val_df = load_split(cfg, "train"), load_split(cfg, "val")
-    loaders = {"train": make_loader(cfg, train_df, train=True), "val": make_loader(cfg, val_df, train=False, batch_size=64)}
+    if t["augment"] == "robust" and device.type == "cuda":
+        # the robust recipe runs on the GPU from images held in memory (src/gpu_augment.py)
+        from src.gpu_augment import GpuAugLoader
+
+        train_loader = GpuAugLoader(cfg, train_df, device, seed=cfg["seed"])
+    else:
+        train_loader = make_loader(cfg, train_df, train=True)
+    loaders = {"train": train_loader, "val": make_loader(cfg, val_df, train=False, batch_size=64)}
 
     model = build_model(cfg).to(device)
     pw = pos_weight(train_df["label"].to_numpy()).to(device) if t["imbalance"] == "weighted_loss" else None

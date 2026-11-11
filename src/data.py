@@ -53,10 +53,29 @@ class RandomRot90(torch.nn.Module):
         return torch.rot90(x, int(torch.randint(0, 4, (1,))), dims=(-2, -1))
 
 
+class RandomLowRes(torch.nn.Module):
+    """Shrink the image to a random side of `lo`-`hi` px and enlarge it back. Smears from other labs often
+    give a white cell only 25-100 px across, which the smear pipeline then enlarges up to ~9x; the model
+    should have seen that softness in training."""
+
+    def __init__(self, lo: int = 28, hi: int = 160, p: float = 0.7):
+        super().__init__()
+        self.lo, self.hi, self.p = lo, hi, p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if torch.rand(1).item() > self.p:
+            return x
+        h, w = x.shape[-2:]
+        side = int(torch.randint(self.lo, self.hi + 1, (1,)))
+        small = torch.nn.functional.interpolate(x[None], size=(side, side), mode="bilinear", antialias=True, align_corners=False)
+        return torch.nn.functional.interpolate(small, size=(h, w), mode="bilinear", align_corners=False)[0].clamp(0, 1)
+
+
 def build_transforms(cfg: dict, train: bool, augment: str | None = None) -> T.Compose:
     d = cfg["data"]
     size = d["img_size"]
     augment = augment if augment is not None else cfg["train"]["augment"]
+    # the colour jitter in "robust" acts on [0,1] images, before normalisation, like the others
     base = [T.ToImage(), T.Resize((size, size), antialias=True), T.ToDtype(torch.float32, scale=True)]
     aug: list = []
     if train and augment in ("geometric", "geometric_hed", "geometric_scale"):
@@ -72,6 +91,19 @@ def build_transforms(cfg: dict, train: bool, augment: str | None = None) -> T.Co
         ]
     if train and augment == "geometric_hed":
         aug.append(HEDJitter())
+    if train and augment == "robust":
+        # Recipe fixed before training, never tuned on outside data: geometry with +-25% zoom (absorbs ruler
+        # error and weakens the size cue), stronger colour, blur, and random loss of resolution.
+        aug += [
+            T.RandomHorizontalFlip(),
+            T.RandomVerticalFlip(),
+            RandomRot90(),
+            T.RandomAffine(degrees=15, translate=(0.05, 0.05), scale=(0.75, 1.25)),
+            T.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.3, hue=0.04),
+            RandomLowRes(28, 160, p=0.7),
+            T.RandomApply([T.GaussianBlur(kernel_size=9, sigma=(0.5, 2.5))], p=0.5),
+            HEDJitter(),
+        ]
     return T.Compose(base + aug + [T.Normalize(d["mean"], d["std"])])
 
 

@@ -88,7 +88,7 @@ class TorchEnsemble:
     evaluations fast; export parity (src/export.py) checks the two agree to < 1e-3 in probability, and
     run_taleqani re-checks agreement on real smear crops before trusting it."""
 
-    def __init__(self, model: Model):
+    def __init__(self, model: Model, prefix: str = "effb0_main"):
         import torch
 
         from src.model import build_model
@@ -99,7 +99,7 @@ class TorchEnsemble:
         self.members = []
         for sd in cfg["calibration"]["ensemble_seeds"]:
             m = build_model(cfg).eval().to(self.dev)
-            m.load_state_dict(torch.load(resolve(cfg["paths"]["checkpoints"]) / f"effb0_main_s{sd}.pt", map_location=self.dev, weights_only=True))
+            m.load_state_dict(torch.load(resolve(cfg["paths"]["checkpoints"]) / f"{prefix}_s{sd}.pt", map_location=self.dev, weights_only=True))
             self.members.append(m)
         self.model = model
 
@@ -143,7 +143,7 @@ def _healthy_stats(p: np.ndarray, mx: np.ndarray, model: Model) -> dict:
 
 
 # ----------------------------------------------------------------------------------- BCCD
-def run_bccd(method: str) -> dict:
+def run_bccd(method: str, model_dir: str = "models", use_filter: bool = False) -> dict:
     ann = pd.read_csv(BCCD / "test.csv")
     files = sorted(ann.filename.unique())
     imgs = {f: cv2.imread(str(BCCD / "BCCD" / "JPEGImages" / f)) for f in files}
@@ -169,17 +169,28 @@ def run_bccd(method: str) -> dict:
                      "rbc_truth": float(((full.xmax - full.xmin + full.ymax - full.ymin) / 2).median()) if len(full) >= 3 else np.nan})
     # healthy donors: every lymphoid-like cell the finder keeps should read as normal
     pg.set_stage("scoring lymphoid-like cells from healthy smears", total=len(imgs))
-    model = Model(resolve("models"))
+    model = Model(resolve(model_dir))
     stain = json.loads(resolve("models/cnmc_stain.json").read_text())
+    filt = CellTypeFilter(resolve("models")) if use_filter else None
     healthy = {"raw_colour": ([], []), "stain_normalised": ([], [])}
+    if filt is not None:
+        healthy["stain_normalised_filtered"] = ([], [])
+    n_cells, n_kept = 0, 0
     for f, rgb in imgs.items():
         res = find_white_cells(rgb, method=method, rbc_override=pooled)
         cells = [c for c in res.cells if c.lymphoid_like and not c.touches_border]
         if cells:
             for k, st in (("raw_colour", None), ("stain_normalised", stain)):
-                p, mx = score_crops(model, [to_cnmc(rgb, c, CNMC_RBC_PX / pooled, mode="ruler", stain=st) for c in cells], with_maxabs=True)
+                full = [to_cnmc(rgb, c, CNMC_RBC_PX / pooled, mode="ruler", stain=st) for c in cells]
+                p, mx = score_crops(model, full, with_maxabs=True)
                 healthy[k][0].extend(p)
                 healthy[k][1].extend(mx)
+                if filt is not None and st is not None:
+                    keep = filt.keep(np.stack([np.asarray(Image.fromarray(f).resize((filt.size, filt.size), Image.BILINEAR)) for f in full]))
+                    n_cells += len(keep)
+                    n_kept += int(keep.sum())
+                    healthy["stain_normalised_filtered"][0].extend(p[keep])
+                    healthy["stain_normalised_filtered"][1].extend(mx[keep])
         pg.step(note=f)
     pg.status = "finished"
     pg._write(force=True)
@@ -199,7 +210,9 @@ def run_bccd(method: str) -> dict:
         "healthy_lymphoid_cells": {
             "note": ("BCCD comes from healthy donors, so lymphoid-like cells should read normal. Most cells the shape "
                      "filter keeps here are in fact granulocytes, which the model was never trained on."),
-            **{k: _healthy_stats(np.array(v[0]), np.array(v[1]), model) for k, v in healthy.items()}},
+            **{k: _healthy_stats(np.array(v[0]), np.array(v[1]), model) for k, v in healthy.items()},
+            "filter_kept": (n_kept / n_cells) if n_cells else None},
+        "model_dir": model_dir, "cell_type_filter": use_filter,
     }
     return summary
 
@@ -219,17 +232,42 @@ def _rbc_one(data: bytes) -> float | None:
 def _crops_one(args) -> dict:
     """Worker: find cells in one smear and return, per arm, the crops already resized to the model's input
     size (uint8, the same PIL bilinear resize Model.preprocess does), so only small arrays cross processes."""
-    data, pooled, stain, method, size = args
+    data, pooled, stain, method, size, arm_names, filter_size = args
     rgb = np.asarray(Image.open(io.BytesIO(data)).convert("RGB"))
     res = find_white_cells(rgb, method=method, rbc_override=pooled)
     cells = [c for c in res.cells if c.lymphoid_like and not c.touches_border]
     out = {"cells_found": len(res.cells), "cells_scored": len(cells), "crops": {}}
     for name, mode, mult, use_stain in ARM_SPECS:
+        if name not in arm_names:
+            continue
         scale = (CNMC_RBC_PX / pooled) * mult if mult else None
-        cr = [np.asarray(Image.fromarray(to_cnmc(rgb, c, scale, mode=mode, stain=stain if use_stain else None))
-                         .resize((size, size), Image.BILINEAR)) for c in cells]
+        full = [to_cnmc(rgb, c, scale, mode=mode, stain=stain if use_stain else None) for c in cells]
+        cr = [np.asarray(Image.fromarray(f).resize((size, size), Image.BILINEAR)) for f in full]
         out["crops"][name] = np.stack(cr) if cr else np.zeros((0, size, size, 3), np.uint8)
+        if filter_size and name == "ruler_x1.0_stain":
+            fc = [np.asarray(Image.fromarray(f).resize((filter_size, filter_size), Image.BILINEAR)) for f in full]
+            out["filter_crops"] = np.stack(fc) if fc else np.zeros((0, filter_size, filter_size, 3), np.uint8)
     return out
+
+
+class CellTypeFilter:
+    """The learned lymphoid / other-white-cell filter (src/vision/cell_type.py), exported to ONNX."""
+
+    def __init__(self, model_dir: Path):
+        import onnxruntime as ort
+
+        self.meta = json.loads((model_dir / "cell_type_meta.json").read_text())
+        self.size, self.thr = int(self.meta["input_size"]), float(self.meta["threshold"])
+        self.sess = ort.InferenceSession(str(model_dir / self.meta["onnx_file"]), providers=["CPUExecutionProvider"])
+        self.mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 3, 1, 1)
+        self.std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 3, 1, 1)
+
+    def keep(self, crops: np.ndarray) -> np.ndarray:
+        if not len(crops):
+            return np.zeros(0, bool)
+        x = ((crops.astype(np.float32).transpose(0, 3, 1, 2) / 255.0) - self.mean) / self.std
+        z = self.sess.run(None, {"image": x})[0].reshape(-1)
+        return 1 / (1 + np.exp(-np.clip(z, -50, 50))) >= self.thr
 
 
 def taleqani_items(limit: int | None):
@@ -254,15 +292,19 @@ def taleqani_items(limit: int | None):
     return items
 
 
-def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
-    job = "taleqani_eval" + (f"_n{limit}" if limit else "")
+def run_taleqani(limit: int | None, method: str, backend: str = "onnx", model_dir: str = "models",
+                 prefix: str = "effb0_main", arm_names: list[str] | None = None, use_filter: bool = False,
+                 job_tag: str = "") -> dict:
+    arm_names = arm_names or [a[0] for a in ARM_SPECS]
+    job = "taleqani_eval" + job_tag + (f"_n{limit}" if limit else "")
     pg = Progress(job, "Smear evaluation on Taleqani ALL" + (f" ({limit} images)" if limit else ""), total=1, stage="loading images")
-    model = Model(resolve("models"))
+    model = Model(resolve(model_dir))
+    filt = CellTypeFilter(resolve("models")) if use_filter else None
     items = taleqani_items(limit)
     rgbs = [np.asarray(Image.open(io.BytesIO(it["data"])).convert("RGB")) for it in items[:40]]
     stain = json.loads(resolve("models/cnmc_stain.json").read_text())
     if backend == "cuda":
-        BACKEND["torch"] = TorchEnsemble(model)
+        BACKEND["torch"] = TorchEnsemble(model, prefix)
         # re-check GPU vs ONNX agreement on real smear crops before trusting the fast path
         chk = []
         for rgb in rgbs[:40]:
@@ -271,7 +313,7 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
         p_gpu = score_crops(model, chk)
         BACKEND.pop("torch")
         p_cpu = score_crops(model, chk)
-        BACKEND["torch"] = TorchEnsemble(model)
+        BACKEND["torch"] = TorchEnsemble(model, prefix)
         diff = float(np.abs(p_gpu - p_cpu).max())
         pg.metrics["gpu_vs_onnx_max_diff"] = diff
         assert diff < 1e-3, f"GPU ensemble disagrees with the ONNX artifact by {diff:.2e}"
@@ -288,10 +330,14 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
     pooled = float(np.median(per_img))
     pg.metrics["red_cell_diameter_px"] = pooled
 
-    pg.set_stage(f"finding and scoring cells, 6 crop settings, {workers} workers + {backend}", total=len(items))
-    arms = [a[0] for a in ARM_SPECS]
-    per_arm = {a: [] for a in arms}
-    per_arm_ood = {a: [] for a in arms}
+    pg.set_stage(f"finding and scoring cells, {len(arm_names)} crop settings, {workers} workers + {backend}", total=len(items))
+    arms = [a[0] for a in ARM_SPECS if a[0] in arm_names]
+    if filt is not None:
+        assert "ruler_x1.0_stain" in arms, "the filter is applied to the stain-normalised ruler crops"
+    report_arms = arms + (["ruler_x1.0_stain_filtered"] if filt is not None else [])
+    per_arm = {a: [] for a in report_arms}
+    per_arm_ood = {a: [] for a in report_arms}
+    kept_frac = []
     cell_rows = []
     mean = model.mean[None].astype(np.float32)
     std = model.std[None].astype(np.float32)
@@ -303,7 +349,8 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
 
         q = deque()
         for it in items:
-            q.append(ex.submit(_crops_one, (it["data"], pooled, stain, method, model.size)))
+            q.append(ex.submit(_crops_one, (it["data"], pooled, stain, method, model.size, arms,
+                                            filt.size if filt is not None else None)))
             if len(q) >= window:
                 yield q.popleft().result()
         while q:
@@ -324,6 +371,11 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
             for a, n in zip(arms, sizes):
                 per_arm[a].append(probs[i:i + n])
                 per_arm_ood[a].append(mx[i:i + n] > model.ood_logit)
+                if a == "ruler_x1.0_stain" and filt is not None:
+                    k_ = filt.keep(out["filter_crops"])
+                    kept_frac.append(k_.mean() if len(k_) else np.nan)
+                    per_arm["ruler_x1.0_stain_filtered"].append(probs[i:i + n][k_])
+                    per_arm_ood["ruler_x1.0_stain_filtered"].append((mx[i:i + n] > model.ood_logit)[k_])
                 i += n
             cell_rows.append({"name": it["name"], "label": it["label"], "subtype": it["subtype"],
                               "cells_found": out["cells_found"], "cells_scored": out["cells_scored"]})
@@ -359,7 +411,7 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
             res[agg] = r
         return res
 
-    for arm in arms:
+    for arm in report_arms:
         flags = np.concatenate([f for f in per_arm_ood[arm] if len(f)]) if any(len(f) for f in per_arm_ood[arm]) else np.array([])
         guarded = [p[~f] for p, f in zip(per_arm[arm], per_arm_ood[arm])]
         results[arm] = {"as_planned": evaluate(per_arm[arm]),
@@ -374,15 +426,22 @@ def run_taleqani(limit: int | None, method: str, backend: str = "onnx") -> dict:
                                  "scale_to_cnmc": CNMC_RBC_PX / pooled},
         "cells": {"images_with_no_scored_cell": float((meta.cells_scored == 0).mean()),
                   "median_cells_found": float(meta.cells_found.median()), "median_cells_scored": float(meta.cells_scored.median())},
-        "primary_as_planned": results["ruler_x1.0"]["as_planned"]["mean"],
-        "primary_note": ("The planned primary arm scores cells in their raw colours. A label-free check made before any "
-                         "result was read showed those inputs push member logits to 12,000+ (C-NMC max 14.9), so its "
-                         "scores are numerically arbitrary. The stain-normalised arm with the out-of-distribution guard "
-                         "is the meaningful result."),
-        "main_result": results["ruler_x1.0_stain"]["with_ood_guard"]["mean"],
+        "model_dir": model_dir, "checkpoint_prefix": prefix, "cell_type_filter": use_filter,
+        "filter_kept_fraction_median": float(np.nanmedian(kept_frac)) if kept_frac else None,
+        **({"primary_as_planned": results["ruler_x1.0"]["as_planned"]["mean"],
+            "primary_note": ("The planned primary arm scores cells in their raw colours. A label-free check made before any "
+                             "result was read showed those inputs push member logits to 12,000+ (C-NMC max 14.9), so its "
+                             "scores are numerically arbitrary. The stain-normalised arm with the out-of-distribution guard "
+                             "is the meaningful result.")} if "ruler_x1.0" in results else {}),
+        "main_result": results["ruler_x1.0_stain_filtered" if use_filter else "ruler_x1.0_stain"]["with_ood_guard"]["mean"],
         "all_arms": results,
         "interval_note": "image-level bootstrap; no patient IDs, so intervals are optimistic",
     }
+    # per-smear scores (aggregate numbers only; no images) for the paired old-vs-new comparison
+    guarded_mean = {a: np.array([float(p[~f].mean()) if len(p[~f]) else np.nan
+                                 for p, f in zip(per_arm[a], per_arm_ood[a])]) for a in report_arms}
+    np.savez(OUT / f"_scores_taleqani{job_tag}.npz", names=meta.name.to_numpy(dtype=str), labels=y,
+             subtypes=meta.subtype.to_numpy(dtype=str), **{f"mean_{a}": v for a, v in guarded_mean.items()})
     pg.step(metrics={"main_roc_auc": summary["main_result"]["roc_auc"]})
     pg.status = "finished"
     pg._write(force=True)
@@ -395,13 +454,20 @@ def main() -> None:
     ap.add_argument("--limit", type=int)
     ap.add_argument("--method", default="classic", choices=["classic", "cellpose"])
     ap.add_argument("--backend", default="cuda", choices=["cuda", "onnx"], help="cuda: same checkpoints on the GPU (fast); onnx: the deployed file on CPU")
+    ap.add_argument("--model-dir", default="models", help="folder with model_meta.json and the ONNX file")
+    ap.add_argument("--prefix", default="effb0_main", help="checkpoint prefix of the same five seeds (GPU path)")
+    ap.add_argument("--arms", default="all", choices=["all", "stain"], help="stain: only the colour-normalised ruler crops")
+    ap.add_argument("--filter", action="store_true", help="also report results after the cell-type filter")
+    ap.add_argument("--tag", default="", help="suffix for the output file and job name")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     import torch
 
     backend = args.backend if torch.cuda.is_available() else "onnx"
-    s = run_bccd(args.method) if args.which == "bccd" else run_taleqani(args.limit, args.method, backend)
-    tag = f"{args.which}_{args.method}" + (f"_n{args.limit}" if args.limit else "")
+    arm_names = None if args.arms == "all" else ["ruler_x1.0_stain"]
+    s = (run_bccd(args.method, args.model_dir, args.filter) if args.which == "bccd" else
+         run_taleqani(args.limit, args.method, backend, args.model_dir, args.prefix, arm_names, args.filter, args.tag))
+    tag = f"{args.which}_{args.method}{args.tag}" + (f"_n{args.limit}" if args.limit else "")
     (OUT / f"{tag}.json").write_text(json.dumps(s, indent=2, default=float))
     print(json.dumps({k: v for k, v in s.items() if k != "all_arms"}, indent=2, default=float))
 

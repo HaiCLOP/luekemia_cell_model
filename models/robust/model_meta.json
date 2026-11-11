@@ -1,0 +1,65 @@
+{
+  "name": "effb0-robust-ens5-v1",
+  "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "input": {
+    "size": 224,
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "resize": "bilinear, antialiased"
+  },
+  "temperature": 0.8082931253940986,
+  "t_low": 0.23721326834816828,
+  "t_high": 0.5,
+  "ood_max_abs_logit": 25.0,
+  "ood_note": "refuse inputs where any member |logit| exceeds this; largest on validation was 7.1",
+  "training_augmentation": "robust",
+  "band_target": "leukemic miss rate <= 2% on validation subjects",
+  "metrics": {
+    "split": "validation (18 subjects); test set not yet evaluated",
+    "pr_auc": 0.9084829923269849,
+    "roc_auc": 0.8503055912490527,
+    "ece_calibrated": 0.028624246022035314,
+    "band_crossfit": {
+      "referral_rate": 0.1132596685082873,
+      "miss_rate": 0.02155887230514096,
+      "false_alarm_rate": 0.40894039735099336,
+      "auto_accuracy": 0.8299065420560747,
+      "target_miss_rate": 0.02,
+      "n_referred": 205,
+      "misses_avoided_per_100_referred": 36.09756097560975
+    }
+  },
+  "git_sha": "85b68b2",
+  "config_hash": "a3ee6923173a",
+  "manifest_sha256": "16a935e4eece3165124ade885c40574037e8d7e974ea0cfefe2835bb97e1a177",
+  "checkpoint_sha256": {
+    "42": "a5d669acad0ce29bf9209f0a5f18294b12714648ada8bcbaa895effdd67a8473",
+    "43": "30aea4ab1f2b9942bbaeb8c041269201ca678c02e266129d62b68db8c37c1b64",
+    "44": "1c7f9bf4b0293487883b5bce64750574b960e1715f9c0e6b0ebeddd76ec8d226",
+    "45": "2a9193c65ef3a49b621e4fed4969201b75fda67fa72cdc28590b82f22933b6fe",
+    "46": "945bb29d894a4ad238fafa74ece289689422ff69041586549187cd5b87a05fce"
+  },
+  "versions": {
+    "torch": "2.5.1+cu121",
+    "onnx_opset": 17
+  },
+  "onnx_file": "effb0-robust-ens5-v1.onnx",
+  "onnx_sha256": "8ed9fd8f6286009a172231e540cfd4b2e9caad0e826701dc87d83104e7def2b6",
+  "exported": "2026-11-11T17:49:16.845386+00:00",
+  "disclaimer": "Research demo. Not for clinical use."
+}

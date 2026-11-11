@@ -1,0 +1,9 @@
+{
+  "n_cells": 32,
+  "max_member_logit_diff": 0.0007784366607666016,
+  "max_ensemble_prob_diff": 5.3554773330688477e-05,
+  "max_calibrated_prob_diff": 6.622076034545898e-05,
+  "decisions_equal": true,
+  "max_cam_rel_diff": 4.212530984659679e-05,
+  "onnx_sha256": "8ed9fd8f6286009a172231e540cfd4b2e9caad0e826701dc87d83104e7def2b6"
+}

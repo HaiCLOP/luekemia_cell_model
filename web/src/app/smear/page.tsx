@@ -23,10 +23,12 @@ export default function SmearPage() {
         <h2 id="caveat-title" className="eyebrow">Experimental · read before trusting a verdict</h2>
         <p>
           The cell finder works well: it found 99.7% of white cells on 364 BCCD smears. The classifier behind it does not travel.
-          It learned from one lab&rsquo;s images. On 3,216 smears from another hospital it called two thirds of the benign smears
-          leukemic (ROC-AUC 0.69), and on healthy BCCD smears it called 90% of the cells leukemic. Sample B below is a normal
-          lymphocyte from a healthy donor, and you will see it marked leukemic. That is the failure this page exists to show, not a
-          diagnosis. Full figures are in the smear section of the model card.
+          It learned from one lab&rsquo;s images. A second network now skips neutrophils and other non-lymphocytes, and on the
+          lymphocytes that remain, smears from another hospital are separated barely better than chance (ROC-AUC 0.57; 79% of
+          benign smears called leukemic). A retrained, blur-tolerant version did worse, so it is not used. The cell-type filter
+          has the same weakness: sample B below is a normal lymphocyte from a healthy donor, and the filter wrongly skips it, so
+          you will get &ldquo;no scorable cells&rdquo;. Expect refusals and wrong answers on smears from other labs; that is what
+          this page exists to show. Full figures are in the smear section of the model card.
         </p>
       </aside>
       <div style={{ marginTop: 28 }}>

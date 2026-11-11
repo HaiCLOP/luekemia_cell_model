@@ -22,8 +22,11 @@ untouched and will be evaluated once at the end, together with the external ALL-
 **Whole smears and another hospital.** A cell finder (`src/vision/segment.py`) now cuts every white cell out of a stained
 smear and puts it on C-NMC scale, using red cells as a ruler. It finds 99.7% of the 372 boxed white cells in BCCD. The
 single-cell model behind it does not transfer: on 3,216 Taleqani Hospital smears it separates ALL from benign hematogone
-smears with ROC-AUC 0.69 and calls two thirds of the benign smears leukemic. Details and the full comparison are in the
-smear section of the model card.
+smears with ROC-AUC 0.69 and calls two thirds of the benign smears leukemic. A learned cell-type filter (trained on the
+PBC dataset) now keeps neutrophils and other non-lymphocytes out; on the lymphocytes that remain the ROC-AUC is 0.57. A
+retrain with heavy blur, resolution and colour augmentation (5 seeds, Kaggle T4) lost accuracy on C-NMC (PR-AUC 0.909 vs
+0.974) and did worse outside it (0.48 vs 0.57), so the original model stays deployed. Details and the full comparison
+are in the smear section of the model card.
 
 ### Findings worth knowing
 

@@ -1,0 +1,145 @@
+{
+  "note": "Validation only. Fitted quantities are cross-fitted over subject groups (3 folds).",
+  "calibration": [
+    {
+      "model": "EfficientNet-B0 (seed 42)",
+      "variant": "raw",
+      "ece": 0.03704642223296137,
+      "nll": 0.44532501214815995,
+      "brier": 0.14407288447246763,
+      "pr_auc": 0.9055678279716713,
+      "roc_auc": 0.8470341449485463,
+      "ece_ci": [
+        0.033505340399686556,
+        0.1912030627801998
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "EfficientNet-B0 (seed 42)",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.038234794755964426,
+      "nll": 0.4483230628523394,
+      "brier": 0.1447582525410799,
+      "pr_auc": 0.9037951887115647,
+      "roc_auc": 0.8446859246812295,
+      "ece_ci": [
+        0.032537405068056455,
+        0.19189843129799425
+      ],
+      "T_folds": [
+        1.147,
+        0.976,
+        0.999
+      ]
+    },
+    {
+      "model": "MobileNetV3-L",
+      "variant": "raw",
+      "ece": 0.06457538268780888,
+      "nll": 0.30936208404702376,
+      "brier": 0.09256171497361036,
+      "pr_auc": 0.9704175831045105,
+      "roc_auc": 0.9459504354606657,
+      "ece_ci": [
+        0.03424722864729159,
+        0.1447625047709718
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "MobileNetV3-L",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.06350242034101565,
+      "nll": 0.3019527641606205,
+      "brier": 0.09191563876591413,
+      "pr_auc": 0.9692105045081876,
+      "roc_auc": 0.9441575236400777,
+      "ece_ci": [
+        0.02740652097594478,
+        0.16392289077488056
+      ],
+      "T_folds": [
+        1.369,
+        1.516,
+        1.2
+      ]
+    },
+    {
+      "model": "Ensemble of 5 B0 seeds",
+      "variant": "raw",
+      "ece": 0.0470884565881132,
+      "nll": 0.4398263798066883,
+      "brier": 0.14096012740500258,
+      "pr_auc": 0.9084829923269849,
+      "roc_auc": 0.8503055912490527,
+      "ece_ci": [
+        0.043766045929374296,
+        0.19853777217282975
+      ],
+      "T_folds": null
+    },
+    {
+      "model": "Ensemble of 5 B0 seeds",
+      "variant": "temperature scaled (cross-fit)",
+      "ece": 0.028624246022035314,
+      "nll": 0.43913016798059834,
+      "brier": 0.14101313335456658,
+      "pr_auc": 0.9054785755875832,
+      "roc_auc": 0.8462681075856919,
+      "ece_ci": [
+        0.030264656144870776,
+        0.17918314571696428
+      ],
+      "T_folds": [
+        0.884,
+        0.721,
+        0.828
+      ]
+    }
+  ],
+  "deployed": {
+    "model": "ensemble of 5 EfficientNet-B0 seeds",
+    "temperature": 0.8082931253940986,
+    "band": {
+      "t_low": 0.23721326834816828,
+      "t_high": 0.5,
+      "referral_rate": 0.11712707182320442,
+      "miss_rate": 0.01990049751243781,
+      "false_alarm_rate": 0.40894039735099336,
+      "auto_accuracy": 0.8304130162703379,
+      "coverage": 0.8828729281767956,
+      "target_miss_rate": 0.02
+    }
+  },
+  "band_crossfit": {
+    "referral_rate": 0.1132596685082873,
+    "miss_rate": 0.02155887230514096,
+    "false_alarm_rate": 0.40894039735099336,
+    "auto_accuracy": 0.8299065420560747,
+    "target_miss_rate": 0.02,
+    "n_referred": 205,
+    "misses_avoided_per_100_referred": 36.09756097560975
+  },
+  "fixed_threshold_0.5": {
+    "referral_rate": 0.0,
+    "miss_rate": 0.08291873963515754,
+    "false_alarm_rate": 0.40894039735099336
+  },
+  "random_referral_same_rate": {
+    "referral_rate": 0.1132596685082873,
+    "miss_rate": 0.07371310116086237,
+    "miss_rate_sd": 0.0026199692334011276,
+    "misses_avoided_per_100_referred": 5.415609756097552
+  },
+  "threshold_only_for_target_miss": {
+    "threshold": 0.248,
+    "referral_rate": 0.0,
+    "miss_rate": 0.01990049751243781,
+    "false_alarm_rate": 0.6225165562913907
+  },
+  "aurc": {
+    "ensemble_calibrated": 0.09234179518906305,
+    "single_raw": 0.09384635504956267
+  }
+}

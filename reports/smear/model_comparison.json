@@ -1,0 +1,46 @@
+{
+  "rule": "Old (deployed) vs robust ensemble on outside smears, with the decision rule fixed before any result.\n\nRule (stated before the outside runs were read): the robust model is adopted for smear analysis only if\n  1. on Taleqani, with colour normalisation and the cell-type filter, the paired difference in smear-level\n     ROC-AUC (robust - old, same smears, image-level bootstrap) has a 95% interval entirely above 0, and\n  2. on BCCD's healthy smears, after the filter, it calls no larger share of cells leukemic than the old model.\nOtherwise the old model stays everywhere.",
+  "taleqani_ruler_x1.0_stain_filtered": {
+    "smears": 2705,
+    "auc_old": 0.5730810633290153,
+    "auc_new": 0.4766996035583312,
+    "difference": -0.09638145977068413,
+    "difference_ci95": [
+      -0.14950800886999188,
+      -0.042644275509331954
+    ]
+  },
+  "taleqani_ruler_x1.0_stain": {
+    "smears": 3017,
+    "auc_old": 0.6875914215451439,
+    "auc_new": 0.61139136405736,
+    "difference": -0.0762000574877838,
+    "difference_ci95": [
+      -0.11091821304871205,
+      -0.0435867726076827
+    ]
+  },
+  "bccd_healthy_after_filter": {
+    "old": {
+      "n": 22,
+      "flagged_out_of_distribution": 0.0,
+      "after_guard_n": 22,
+      "called_leukemic": 1.0,
+      "referred": 0.0,
+      "called_normal": 0.0
+    },
+    "robust": {
+      "n": 22,
+      "flagged_out_of_distribution": 0.0,
+      "after_guard_n": 22,
+      "called_leukemic": 1.0,
+      "referred": 0.0,
+      "called_normal": 0.0
+    }
+  },
+  "decision": {
+    "rule1_taleqani_better": false,
+    "rule2_bccd_not_worse": true,
+    "adopt_robust_for_smears": false
+  }
+}

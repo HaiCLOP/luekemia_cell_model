@@ -13,6 +13,7 @@ the API from model_meta.json, so they can change without re-exporting.
 from __future__ import annotations
 
 import argparse
+import shutil
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -52,17 +53,26 @@ def sha256(path) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", default="effb0-ens5-v1")
+    ap.add_argument("--prefix", default="effb0_main", help="run-name prefix of the five seed checkpoints")
+    ap.add_argument("--out", default="models", help="output folder (a second model goes in its own folder)")
     args = ap.parse_args()
     cfg = load_config()
     seeds = cfg["calibration"]["ensemble_seeds"]
+    main_model = args.prefix == "effb0_main"
+    triage_dir = resolve("reports/triage" if main_model else f"reports/triage_{args.prefix}")
+    triage = json.loads((triage_dir / "summary.json").read_text())
+    # the deployed model's temperature and band live in config.yaml; any other model uses its own triage fit
+    temperature = cfg["band"]["temperature"] if main_model else triage["deployed"]["temperature"]
+    t_low = cfg["band"]["t_low"] if main_model else triage["deployed"]["band"]["t_low"]
+    t_high = cfg["band"]["t_high"] if main_model else triage["deployed"]["band"]["t_high"]
     members = []
     for s in seeds:
         m = build_model(cfg).eval()
-        m.load_state_dict(torch.load(resolve(cfg["paths"]["checkpoints"]) / f"effb0_main_s{s}.pt", map_location="cpu", weights_only=True))
+        m.load_state_dict(torch.load(resolve(cfg["paths"]["checkpoints"]) / f"{args.prefix}_s{s}.pt", map_location="cpu", weights_only=True))
         members.append(m)
     model = EnsembleWithCAM(members).eval()
 
-    out_dir = resolve("models")
+    out_dir = resolve(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     onnx_path = out_dir / f"{args.name}.onnx"
     size = cfg["data"]["img_size"]
@@ -71,16 +81,24 @@ def main() -> None:
                       dynamic_axes={"image": {0: "batch"}, "logits": {0: "batch"}, "cam": {0: "batch"}},
                       opset_version=17, do_constant_folding=True, dynamo=False)
 
-    # validation metrics of the deployed model for the model card / DB row
-    triage = json.loads((resolve("reports/triage") / "summary.json").read_text())
+    # out-of-distribution guard: about 1.7x the largest |member logit| on validation, never below 25
+    import glob
+
+    val_logits = np.stack([np.load(f, allow_pickle=False)["logits"] for f in
+                           sorted(glob.glob(str(resolve("reports/preds") / f"{args.prefix}_s*_val.npz")))])
+    ood = float(max(25.0, round(1.7 * float(np.abs(val_logits).max()), 1)))
+
+    # validation metrics of the model for the model card / DB row
     ens_rows = [r for r in triage["calibration"] if r["model"].startswith("Ensemble")]
     meta = {
         "name": args.name,
         "architecture": f"EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of {len(seeds)} seeds",
         "seeds": seeds,
         "input": {"size": size, "mean": cfg["data"]["mean"], "std": cfg["data"]["std"], "resize": "bilinear, antialiased"},
-        "temperature": cfg["band"]["temperature"],
-        "t_low": cfg["band"]["t_low"], "t_high": cfg["band"]["t_high"],
+        "temperature": temperature, "t_low": t_low, "t_high": t_high,
+        "ood_max_abs_logit": ood,
+        "ood_note": f"refuse inputs where any member |logit| exceeds this; largest on validation was {float(np.abs(val_logits).max()):.1f}",
+        "training_augmentation": "robust" if "robust" in args.prefix else cfg["train"]["augment"],
         "band_target": f"leukemic miss rate <= {cfg['band']['target_miss_rate']:.0%} on validation subjects",
         "metrics": {
             "split": "validation (18 subjects); test set not yet evaluated",
@@ -91,13 +109,15 @@ def main() -> None:
         },
         "git_sha": git_sha(), "config_hash": config_hash(cfg),
         "manifest_sha256": sha256(resolve("data/splits.csv")),
-        "checkpoint_sha256": {s: sha256(resolve(cfg["paths"]["checkpoints"]) / f"effb0_main_s{s}.pt") for s in seeds},
+        "checkpoint_sha256": {s: sha256(resolve(cfg["paths"]["checkpoints"]) / f"{args.prefix}_s{s}.pt") for s in seeds},
         "versions": {"torch": torch.__version__, "onnx_opset": 17},
         "onnx_file": onnx_path.name, "onnx_sha256": sha256(onnx_path),
         "exported": datetime.now(timezone.utc).isoformat(),
         "disclaimer": cfg["disclaimer"],
     }
     (out_dir / "model_meta.json").write_text(json.dumps(meta, indent=2, default=float))
+    if out_dir != resolve("models"):  # a second model folder needs the C-NMC colour statistics for smear crops too
+        shutil.copy(resolve("models") / "cnmc_stain.json", out_dir / "cnmc_stain.json")
 
     # Parity check on REAL validation cells (random noise drives activations to ~1e3 and makes float32
     # accumulation differences look large in absolute terms; real inputs are what matter).
@@ -114,7 +134,7 @@ def main() -> None:
         tl, tc = model(x)
     ol, oc = sess.run(None, {"image": x.numpy()})
     tl, tc, ol, oc = tl.numpy(), tc.numpy(), np.asarray(ol), np.asarray(oc)
-    T, lo, hi = cfg["band"]["temperature"], cfg["band"]["t_low"], cfg["band"]["t_high"]
+    T, lo, hi = temperature, t_low, t_high
 
     def downstream(logits):
         p = np.clip((1 / (1 + np.exp(-logits))).mean(1), 1e-6, 1 - 1e-6)

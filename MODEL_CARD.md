@@ -177,6 +177,52 @@ classifier; (2) retraining with colour, blur and resolution augmentation, or a s
 outside evaluation; (3) a properly resolved external set with patient IDs, so smear-level and patient-level results can
 be stated with honest intervals.
 
+### Two fixes tried, and what they did
+
+**A learned cell-type filter** (`src/vision/cell_type.py`): an EfficientNet-B0 trained on PBC (Acevedo et al. 2020,
+CC BY 4.0; 14,744 expert-labelled white cells from a Barcelona hospital, cut out exactly as the smear reader cuts cells)
+plus C-NMC training cells, to answer "lymphocyte, read it" or "other white cell, skip it". Threshold chosen to keep 98%
+of C-NMC training cells and PBC validation lymphocytes; no outside smear data was used.
+
+| Held-out check | Kept |
+|---|---|
+| PBC lymphocytes | 96.9% |
+| PBC neutrophils, eosinophils, basophils, monocytes | 0% |
+| PBC immature granulocytes / erythroblasts | 0.3% / 0.6% |
+| C-NMC validation cells, normal and leukemic | 100% / 100% |
+| BCCD healthy smears: cells the shape rule had let through | 16% kept (84% dropped as non-lymphoid) |
+| BCCD: 8 clear lymphocytes picked by eye | **2 kept, 6 wrongly dropped** |
+
+The filter is reliable on its own microscope and, like the ALL classifier, much less so on another lab's images: on BCCD
+it drops most granulocytes but also most real lymphocytes (8 checked by eye; a small sample, but a clear signal). It is
+still part of the smear pipeline and the API: when it is wrong it makes the system refuse to score a cell, which is a
+safer failure than scoring a neutrophil with a lymphocyte model. What it did to the numbers is itself a finding: on Taleqani, the old model's smear
+ROC-AUC fell from 0.688 to **0.573** (0.534 to 0.612) and benign smears called leukemic rose from 66.8% to 79.2%. Part of
+the earlier 0.69 came from non-lymphoid cells pulling benign smears' averages down. On the cells it is meant to read,
+the model barely separates ALL smears from hematogone smears.
+
+**A "robust" retrain** (`augment: robust`, `src/gpu_augment.py`): the same five-seed EfficientNet-B0 recipe, trained on
+C-NMC with heavy blur, resolution loss (to 28-160 px), colour and stain jitter and +-25% zoom, fixed before training.
+Trained on a Kaggle T4 (47 min; `scripts/kaggle/build_kernel.py`, every image checked pixel-identical to the laptop
+copy), calibrated and exported to `models/robust/` without touching the deployed model.
+
+| | Old (deployed) | Robust retrain |
+|---|---|---|
+| C-NMC validation PR-AUC | **0.974** | 0.909 |
+| C-NMC validation ROC-AUC | **0.952** | 0.850 |
+| C-NMC: normal cells called leukemic at the band | **18.4%** | 40.9% |
+| Taleqani smear ROC-AUC, colour-normalised + filter | **0.573** | 0.477 |
+| Taleqani smear ROC-AUC, colour-normalised, no filter | **0.688** | 0.611 |
+| BCCD healthy lymphocytes called leukemic (22 cells, after filter) | 100% | 100% |
+
+The decision rule was fixed before these runs (`src/compare_models.py`): adopt the retrain for smears only if its
+paired Taleqani ROC-AUC difference has a 95% interval above zero and it is no worse on BCCD. The difference was
+**-0.096 (-0.150 to -0.043)**, so the old model stays everywhere. Augmentation alone did not buy robustness: the
+retrain lost accuracy on clean cells and did not gain it on other labs' smears. The likely reason is that the hard part
+is not blur or colour but biology and source: Taleqani's benign smears are full of hematogones, which C-NMC never shows,
+and its cells come from a different camera at about a ninth of C-NMC's resolution. The next step that could actually
+help is training data from more than one lab, with patient-level splits, rather than more augmentation of one lab.
+
 ## Limitations
 
 - One dataset, one acquisition setup; external evaluation on ALL-IDB2 is pending.

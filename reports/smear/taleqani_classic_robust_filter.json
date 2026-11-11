@@ -1,0 +1,264 @@
+{
+  "dataset": "Taleqani Hospital ALL (Aria et al. 2021), HF mirror pritam06/leukemia-cancer-data, 224 x 224",
+  "images": 3216,
+  "malignant": 2712,
+  "benign": 504,
+  "method": "classic",
+  "backend": "cuda",
+  "seconds": 467.0589871406555,
+  "red_cell_diameter_px": {
+    "pooled": 17.342258707561086,
+    "per_image_cv": 0.36926197949280204,
+    "scale_to_cnmc": 9.053030671924486
+  },
+  "cells": {
+    "images_with_no_scored_cell": 0.06187810945273632,
+    "median_cells_found": 9.0,
+    "median_cells_scored": 5.0
+  },
+  "model_dir": "models/robust",
+  "checkpoint_prefix": "effb0_robust",
+  "cell_type_filter": true,
+  "filter_kept_fraction_median": 0.6,
+  "main_result": {
+    "images_scored": 2705,
+    "roc_auc": 0.4766996035583312,
+    "roc_auc_ci95": [
+      0.44094768733553463,
+      0.5145685641853088
+    ],
+    "pr_auc": 0.8606450444908221,
+    "pr_auc_ci95": [
+      0.8416681124012199,
+      0.8807707530127888
+    ],
+    "band": {
+      "referral_rate": 0.5127541589648799,
+      "missed_malignant": 0.0037767519932857744,
+      "false_alarm_benign": 0.5093167701863354
+    },
+    "sensitivity_by_subtype_at_t_high": {
+      "Early": 0.4164785553047404,
+      "Pre": 0.4537346711259755,
+      "Pro": 0.615
+    },
+    "benign_mean_score": 0.5089227526517017
+  },
+  "all_arms": {
+    "ruler_x1.0_stain": {
+      "as_planned": {
+        "mean": {
+          "images_scored": 3017,
+          "roc_auc": 0.61139136405736,
+          "roc_auc_ci95": [
+            0.5828896942822864,
+            0.6384925091389998
+          ],
+          "pr_auc": 0.8787753807744403,
+          "pr_auc_ci95": [
+            0.8642746294587597,
+            0.8940497749545018
+          ],
+          "band": {
+            "referral_rate": 0.6519721577726219,
+            "missed_malignant": 0.004761904761904762,
+            "false_alarm_benign": 0.25553319919517103
+          },
+          "sensitivity_by_subtype_at_t_high": {
+            "Early": 0.3381294964028777,
+            "Pre": 0.2807203389830508,
+            "Pro": 0.5207296849087893
+          },
+          "benign_mean_score": 0.4494032344121744
+        },
+        "max": {
+          "images_scored": 3017,
+          "roc_auc": 0.6000271470090384,
+          "roc_auc_ci95": [
+            0.570538347534963,
+            0.6292219444997676
+          ],
+          "pr_auc": 0.8632012822592268,
+          "pr_auc_ci95": [
+            0.8470373950153696,
+            0.8817159725224425
+          ]
+        },
+        "frac_above_band": {
+          "images_scored": 3017,
+          "roc_auc": 0.590980805467727,
+          "roc_auc_ci95": [
+            0.5631061402044302,
+            0.6191215985931119
+          ],
+          "pr_auc": 0.8688759790974674,
+          "pr_auc_ci95": [
+            0.8539319418588568,
+            0.8836195368461448
+          ]
+        }
+      },
+      "with_ood_guard": {
+        "mean": {
+          "images_scored": 3017,
+          "roc_auc": 0.61139136405736,
+          "roc_auc_ci95": [
+            0.5828896942822864,
+            0.6384925091389998
+          ],
+          "pr_auc": 0.8787753807744403,
+          "pr_auc_ci95": [
+            0.8642746294587597,
+            0.8940497749545018
+          ],
+          "band": {
+            "referral_rate": 0.6519721577726219,
+            "missed_malignant": 0.004761904761904762,
+            "false_alarm_benign": 0.25553319919517103
+          },
+          "sensitivity_by_subtype_at_t_high": {
+            "Early": 0.3381294964028777,
+            "Pre": 0.2807203389830508,
+            "Pro": 0.5207296849087893
+          },
+          "benign_mean_score": 0.4494032344121744
+        },
+        "max": {
+          "images_scored": 3017,
+          "roc_auc": 0.6000271470090384,
+          "roc_auc_ci95": [
+            0.570538347534963,
+            0.6292219444997676
+          ],
+          "pr_auc": 0.8632012822592268,
+          "pr_auc_ci95": [
+            0.8470373950153696,
+            0.8817159725224425
+          ]
+        },
+        "frac_above_band": {
+          "images_scored": 3017,
+          "roc_auc": 0.590980805467727,
+          "roc_auc_ci95": [
+            0.5631061402044302,
+            0.6191215985931119
+          ],
+          "pr_auc": 0.8688759790974674,
+          "pr_auc_ci95": [
+            0.8539319418588568,
+            0.8836195368461448
+          ]
+        }
+      },
+      "cells_flagged_out_of_distribution": 0.0
+    },
+    "ruler_x1.0_stain_filtered": {
+      "as_planned": {
+        "mean": {
+          "images_scored": 2705,
+          "roc_auc": 0.4766996035583312,
+          "roc_auc_ci95": [
+            0.44094768733553463,
+            0.5145685641853088
+          ],
+          "pr_auc": 0.8606450444908221,
+          "pr_auc_ci95": [
+            0.8416681124012199,
+            0.8807707530127888
+          ],
+          "band": {
+            "referral_rate": 0.5127541589648799,
+            "missed_malignant": 0.0037767519932857744,
+            "false_alarm_benign": 0.5093167701863354
+          },
+          "sensitivity_by_subtype_at_t_high": {
+            "Early": 0.4164785553047404,
+            "Pre": 0.4537346711259755,
+            "Pro": 0.615
+          },
+          "benign_mean_score": 0.5089227526517017
+        },
+        "max": {
+          "images_scored": 2705,
+          "roc_auc": 0.6274556055705137,
+          "roc_auc_ci95": [
+            0.5921491510497663,
+            0.6626793378112689
+          ],
+          "pr_auc": 0.9128449834477341,
+          "pr_auc_ci95": [
+            0.8982511457232609,
+            0.9278642223446452
+          ]
+        },
+        "frac_above_band": {
+          "images_scored": 2705,
+          "roc_auc": 0.4900055517472365,
+          "roc_auc_ci95": [
+            0.45048498311321317,
+            0.5289187529800599
+          ],
+          "pr_auc": 0.8572072659132279,
+          "pr_auc_ci95": [
+            0.8385575041394513,
+            0.875713793575693
+          ]
+        }
+      },
+      "with_ood_guard": {
+        "mean": {
+          "images_scored": 2705,
+          "roc_auc": 0.4766996035583312,
+          "roc_auc_ci95": [
+            0.44094768733553463,
+            0.5145685641853088
+          ],
+          "pr_auc": 0.8606450444908221,
+          "pr_auc_ci95": [
+            0.8416681124012199,
+            0.8807707530127888
+          ],
+          "band": {
+            "referral_rate": 0.5127541589648799,
+            "missed_malignant": 0.0037767519932857744,
+            "false_alarm_benign": 0.5093167701863354
+          },
+          "sensitivity_by_subtype_at_t_high": {
+            "Early": 0.4164785553047404,
+            "Pre": 0.4537346711259755,
+            "Pro": 0.615
+          },
+          "benign_mean_score": 0.5089227526517017
+        },
+        "max": {
+          "images_scored": 2705,
+          "roc_auc": 0.6274556055705137,
+          "roc_auc_ci95": [
+            0.5921491510497663,
+            0.6626793378112689
+          ],
+          "pr_auc": 0.9128449834477341,
+          "pr_auc_ci95": [
+            0.8982511457232609,
+            0.9278642223446452
+          ]
+        },
+        "frac_above_band": {
+          "images_scored": 2705,
+          "roc_auc": 0.4900055517472365,
+          "roc_auc_ci95": [
+            0.45048498311321317,
+            0.5289187529800599
+          ],
+          "pr_auc": 0.8572072659132279,
+          "pr_auc_ci95": [
+            0.8385575041394513,
+            0.875713793575693
+          ]
+        }
+      },
+      "cells_flagged_out_of_distribution": 0.0
+    }
+  },
+  "interval_note": "image-level bootstrap; no patient IDs, so intervals are optimistic"
+}

@@ -32,6 +32,32 @@ def _stain_target(model_dir: str) -> dict | None:
     return json.loads(f.read_text()) if f.exists() else None
 
 
+@lru_cache(maxsize=4)
+def _cell_filter(model_dir: str):
+    """The learned lymphoid / other-white-cell filter, if this server has it (models/cell_type_meta.json)."""
+    meta_f = Path(model_dir) / "cell_type_meta.json"
+    if not meta_f.exists():
+        return None
+    import onnxruntime as ort
+
+    meta = json.loads(meta_f.read_text())
+    sess = ort.InferenceSession(str(Path(model_dir) / meta["onnx_file"]), providers=["CPUExecutionProvider"])
+    return sess, int(meta["input_size"]), float(meta["threshold"])
+
+
+def _filter_keep(model_dir: str, crops: list[np.ndarray]) -> np.ndarray | None:
+    f = _cell_filter(model_dir)
+    if f is None or not crops:
+        return None
+    sess, size, thr = f
+    mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 3, 1, 1)
+    std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 3, 1, 1)
+    x = np.stack([np.asarray(Image.fromarray(c).resize((size, size), Image.BILINEAR)) for c in crops]).astype(np.float32)
+    x = (x.transpose(0, 3, 1, 2) / 255.0 - mean) / std
+    z = sess.run(None, {"image": x})[0].reshape(-1)
+    return 1 / (1 + np.exp(-np.clip(z, -50, 50))) >= thr
+
+
 def _overlay(rgb: np.ndarray, cells, decisions) -> str:
     o = rgb.copy()
     lw = max(2, int(round(max(rgb.shape[:2]) / 400)))
@@ -80,7 +106,12 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
         if c.lymphoid_like and not c.touches_border:
             crops.append(to_cnmc(rgb, c, res.scale, mode="ruler" if res.scale else "fit", stain=stain))
             idx.append(i)
-    probs, ood = {}, set()
+    probs, ood, dropped = {}, set(), set()
+    keep = _filter_keep(str(model.dir), crops)
+    if keep is not None:
+        dropped = {i for i, k in zip(idx, keep) if not k}
+        crops = [c for c, k in zip(crops, keep) if k]
+        idx = [i for i, k in zip(idx, keep) if k]
     if crops:
         xs = np.concatenate([model.preprocess(Image.fromarray(cr))[0] for cr in crops], axis=0)
         logits, _ = model.session.run(None, {"image": xs})
@@ -99,6 +130,7 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
         else:
             p, d = None, "not_scored"
             reason = ("out of distribution: the model's internal scores were far outside their normal range" if i in ood
+                      else "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes" if i in dropped
                       else "touches the image edge" if c.touches_border
                       else "not lymphoid-like (lobed or irregular nucleus); the model only knows lymphocytes")
         decisions.append(d)

@@ -44,7 +44,7 @@ train:
   imbalance: weighted_loss       # weighted_loss | weighted_sampler | none
   label_smoothing: 0.0           # main run uses none (it distorts calibration)
   dropout: 0.2                   # before head; also used for MC dropout
-  augment: geometric             # none | geometric | geometric_hed | geometric_scale
+  augment: geometric             # none | geometric | geometric_hed | geometric_scale | robust
   max_steps: null                # set small for smoke tests
 
 calibration:
