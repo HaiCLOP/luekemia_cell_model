@@ -60,8 +60,11 @@ export function Uploader() {
   }
 
   return (
-    <section className="upload" aria-labelledby="upload-title" id="analyse">
-      <h2 id="upload-title" className="eyebrow">Analyse a single cell</h2>
+    <section className="tray" aria-labelledby="upload-title" id="analyse">
+      <div className="tray-head">
+        <h2 id="upload-title" className="eyebrow">Specimen tray · analyse one cell</h2>
+        <span className="label">PNG · JPEG · BMP · up to 5 MB</span>
+      </div>
 
       <label
         htmlFor={inputId}
@@ -70,8 +73,13 @@ export function Uploader() {
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); choose(e.dataTransfer.files?.[0]); }}
       >
-        <span className="big">Drop a cell image here</span>
-        <span className="small">or press to choose a file. PNG, JPEG or BMP, up to 5 MB. One segmented white blood cell per image works best.</span>
+        <span className="well" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="11" fill="none" stroke="#1d2340" strokeWidth="1.5" /><circle cx="16.5" cy="14" r="6" fill="#2b3a78" /><circle cx="18" cy="12.5" r="1.6" fill="#d4573a" /></svg>
+        </span>
+        <span>
+          <span className="big" style={{ display: "block" }}>Drop a cell image here</span>
+          <span className="small">or press to choose a file. One segmented white blood cell per image works best.</span>
+        </span>
         <input
           ref={inputRef}
           id={inputId}
@@ -111,15 +119,13 @@ export function Uploader() {
       {error && <p className="error" role="alert">{error}</p>}
 
       <div className="samples">
-        <div className="small">No image to hand? Try a C-NMC validation cell:</div>
-        <div className="samples-row">
-          {SAMPLES.map((s) => (
-            <button key={s.file} type="button" className="sample" disabled={busy} onClick={() => trySample(s.file, s.label)}>
-              <img src={s.file} alt="" />
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <span className="small">No image to hand? Try a validation cell:</span>
+        {SAMPLES.map((s) => (
+          <button key={s.file} type="button" className="sample" disabled={busy} onClick={() => trySample(s.file, s.label)}>
+            <img src={s.file} alt="" />
+            {s.label}
+          </button>
+        ))}
       </div>
     </section>
   );

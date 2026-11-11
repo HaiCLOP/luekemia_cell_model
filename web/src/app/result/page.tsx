@@ -10,22 +10,22 @@ const BAND = results.band;
 
 const COPY = {
   normal: {
-    tag: "Normal",
-    line1: "Looks like a",
+    stamp: "Normal",
+    line1: "Reads as a",
     line2: "normal lymphocyte.",
     body: "The calibrated score sits below the lower edge of the band, where the model has been reliable on held-out subjects.",
   },
   leukemic: {
-    tag: "Leukemic",
-    line1: "Looks like a",
+    stamp: "Leukemic",
+    line1: "Reads as a",
     line2: "leukemic blast.",
-    body: "The calibrated score sits above the upper edge of the band. On validation subjects, scores this high were mostly lymphoblasts, but large normal cells can also land here.",
+    body: "The calibrated score sits above the upper edge of the band. On validation subjects, scores this high were mostly lymphoblasts, but large normal cells can land here too.",
   },
   refer_to_expert: {
-    tag: "Refer to expert",
+    stamp: "Refer to expert",
     line1: "Not sure.",
     line2: "A person should look.",
-    body: "The score falls inside the referral band. On validation subjects this band caught most of the cells the model would otherwise have missed, so the right next step is a human review, not a guess.",
+    body: "The score falls inside the referral band, where the model has made most of its mistakes. The right next step is a human review, not a guess.",
   },
 } as const;
 
@@ -46,22 +46,23 @@ export default function ResultPage() {
   }, []);
 
   useEffect(() => {
-    if (data) document.title = `${COPY[data.response.decision].tag} · Result · Cell Triage`;
+    if (data) document.title = `${COPY[data.response.decision].stamp} · Result · Cell Triage`;
   }, [data]);
 
   if (data === undefined) return <div className="prose section" aria-busy="true" />;
 
   if (data === null)
     return (
-      <section className="prose section center">
-        <h1 className="display" style={{ fontSize: "clamp(40px,6vw,64px)" }}>
-          No result yet.
+      <section className="prose section">
+        <p className="eyebrow">Report</p>
+        <h1 className="display" style={{ fontSize: "clamp(40px,6vw,64px)", marginTop: 14 }}>
+          No specimen yet.
           <br />
           <em>Start with a cell.</em>
         </h1>
-        <p className="lede" style={{ margin: "18px auto 0" }}>Results stay in this browser tab only. Upload an image or try a sample cell.</p>
-        <div className="actions" style={{ justifyContent: "center" }}>
-          <Link className="btn btn-primary" href="/#analyse">Analyse a cell</Link>
+        <p className="lede" style={{ marginTop: 18 }}>Results stay in this browser tab only. Upload an image or try a sample cell.</p>
+        <div className="actions">
+          <Link className="btn btn-primary" href="/#analyse">Analyse a cell <span className="arrow">→</span></Link>
         </div>
       </section>
     );
@@ -69,6 +70,7 @@ export default function ResultPage() {
   const r = data.response;
   const c = COPY[r.decision];
   const lo = r.band.t_low * 100, hi = r.band.t_high * 100, p = r.prob_calibrated * 100;
+  const when = new Date(data.createdAt);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,73 +88,76 @@ export default function ResultPage() {
 
   return (
     <div className="prose section" style={{ paddingTop: 40 }}>
-      <Link href="/#analyse" className="small">Analyse another cell</Link>
+      <Link href="/#analyse" className="small">← Analyse another cell</Link>
 
-      <section className={`verdict ${r.decision}`} aria-labelledby="verdict-title">
-        <span className="tag">{c.tag}</span>
+      <article className={`result-card ${r.decision}`} aria-labelledby="verdict-title">
+        <div className="result-head">
+          <span className="label">Report · {r.prediction_id.slice(0, 8)}</span>
+          <span className="label">{when.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
+        </div>
+
+        <span className={`stamp ${r.decision}`}>{c.stamp}</span>
         <h1 id="verdict-title" className="display">
           {c.line1}
           <br />
           <em>{c.line2}</em>
         </h1>
-        <p style={{ marginTop: 16, maxWidth: 620 }}>{c.body}</p>
+        <p style={{ marginTop: 16, maxWidth: 600, color: "var(--ink-2)" }}>{c.body}</p>
 
-        <div className="pbar">
-          <div className="small" id="pbar-label">
-            Calibrated probability of leukemia: <strong className="mono">{r.prob_calibrated.toFixed(3)}</strong>
-          </div>
+        <div className="scale">
+          <span className="label" id="scale-label">Calibrated probability of leukemia</span>
           <div
-            className="pbar-track"
+            className="scale-bar"
             role="img"
-            aria-labelledby="pbar-label"
-            aria-describedby="pbar-legend"
-            style={{ ["--lo" as string]: `${lo}%`, ["--hi" as string]: `${hi}%`, marginTop: 10 }}
+            aria-label={`Calibrated probability ${r.prob_calibrated.toFixed(3)} on a scale from 0 to 1; normal below ${r.band.t_low}, refer between ${r.band.t_low} and ${r.band.t_high}, leukemic above ${r.band.t_high}.`}
+            style={{ ["--lo" as string]: `${lo}%`, ["--hi" as string]: `${hi}%`, marginTop: 30 }}
           >
-            <span className="pbar-mark" style={{ left: `${p}%` }} />
+            <span className="scale-ticks" />
+            <span className="scale-mark" style={{ left: `${p}%` }} data-v={r.prob_calibrated.toFixed(3)} />
           </div>
-          <div className="pbar-scale mono" aria-hidden="true"><span>0</span><span>0.5</span><span>1</span></div>
-          <div className="pbar-legend" id="pbar-legend">
-            <span><i style={{ background: "#cfe8bb" }} />normal, below {r.band.t_low.toFixed(2)}</span>
-            <span><i style={{ background: "#f3dca0" }} />refer, {r.band.t_low.toFixed(2)} to {r.band.t_high.toFixed(2)}</span>
-            <span><i style={{ background: "#ecc2b5" }} />leukemic, above {r.band.t_high.toFixed(2)}</span>
+          <div className="scale-axis" aria-hidden="true"><span>0.0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span></div>
+          <div className="scale-key">
+            <span><i style={{ background: "var(--sage-soft)" }} />normal, below {r.band.t_low.toFixed(2)}</span>
+            <span><i style={{ background: "var(--ochre-soft)" }} />refer, {r.band.t_low.toFixed(2)} to {r.band.t_high.toFixed(2)}</span>
+            <span><i style={{ background: "var(--eosin-soft)" }} />leukemic, above {r.band.t_high.toFixed(2)}</span>
           </div>
         </div>
 
         <dl className="facts">
-          <div><dt>Raw ensemble score</dt><dd className="mono">{r.prob_raw.toFixed(3)}</dd></div>
-          <div><dt>Model</dt><dd className="mono">{r.model_version}</dd></div>
-          <div><dt>Analysis time</dt><dd className="mono">{r.latency_ms} ms</dd></div>
-          <div><dt>Image kept</dt><dd>{r.image_stored ? "Yes, 24 hours" : "No, fingerprint only"}</dd></div>
+          <div><dt>Raw ensemble score</dt><dd>{r.prob_raw.toFixed(3)}</dd></div>
+          <div><dt>Model</dt><dd>{r.model_version}</dd></div>
+          <div><dt>Analysis time</dt><dd>{r.latency_ms} ms</dd></div>
+          <div><dt>Image kept</dt><dd>{r.image_stored ? "24 h" : "no, hash only"}</dd></div>
         </dl>
-      </section>
 
-      <div className="pair">
-        <figure>
-          <img src={data.previewDataUrl} alt={`The uploaded cell image, ${data.fileName}`} />
-          <figcaption>Your image ({data.fileName})</figcaption>
-        </figure>
-        <figure>
-          {r.heatmap_png_base64 ? (
-            <img src={`data:image/png;base64,${r.heatmap_png_base64}`} alt="Heatmap over the cell: brighter areas pushed the score towards leukemic" />
-          ) : (
-            <p className="small">No heatmap returned.</p>
-          )}
-          <figcaption>Where the model looked. Brighter means more influence on the leukemic score.</figcaption>
-        </figure>
-      </div>
+        <div className="pair">
+          <figure>
+            <img src={data.previewDataUrl} alt={`The uploaded cell image, ${data.fileName}`} />
+            <figcaption>Specimen · {data.fileName}</figcaption>
+          </figure>
+          <figure>
+            {r.heatmap_png_base64 ? (
+              <img src={`data:image/png;base64,${r.heatmap_png_base64}`} alt="Heatmap over the cell: brighter areas pushed the score towards leukemic" />
+            ) : (
+              <p className="small">No heatmap returned.</p>
+            )}
+            <figcaption>Where the model looked · brighter = more influence</figcaption>
+          </figure>
+        </div>
+      </article>
 
       <section className="note" aria-labelledby="refer-title">
-        <h2 id="refer-title" style={{ fontSize: 19, margin: 0 }}>What “refer to expert” means</h2>
-        <p style={{ marginBottom: 0 }}>
-          The model has three answers, not two. Scores between {r.band.t_low.toFixed(2)} and {r.band.t_high.toFixed(2)} are where it has been
-          wrong most often, so it hands those cells to a haematologist instead of guessing. On 18 held-out subjects this sent {pct(BAND.band.referral_rate)} of
-          cells to review and cut missed leukemic cells from {pct(BAND.fixed.miss_rate)} to {pct(BAND.band.miss_rate)}. The heatmap is a guide to what the model used, not proof
-          that it used the right thing: in testing it leaned heavily on cell size.
+        <h2 id="refer-title" style={{ fontSize: 18, margin: 0 }}>What “refer to expert” means</h2>
+        <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
+          The model has three answers, not two. Scores between {r.band.t_low.toFixed(2)} and {r.band.t_high.toFixed(2)} are where it has been wrong
+          most often, so it hands those cells to a haematologist. On 18 held-out subjects this sent {pct(BAND.band.referral_rate)} of cells to review
+          and cut missed leukemic cells from {pct(BAND.fixed.miss_rate)} to {pct(BAND.band.miss_rate)}. The heatmap shows what the model used, not
+          proof that it used the right thing: in testing it leaned heavily on cell size.
         </p>
       </section>
 
       <form className="note feedback" onSubmit={submit} aria-labelledby="fb-title">
-        <h2 id="fb-title" style={{ fontSize: 19, margin: 0 }}>Did it get this one right?</h2>
+        <h2 id="fb-title" style={{ fontSize: 18, margin: 0 }}>Did it get this one right?</h2>
         <fieldset disabled={state === "sending" || state === "sent"}>
           <legend className="small" style={{ marginTop: 6 }}>If you know the true label, tell us. It is saved with this prediction only.</legend>
           <div className="choice">
@@ -164,25 +169,13 @@ export default function ResultPage() {
             ))}
           </div>
           <label htmlFor="fb-comment" className="visually-hidden">Optional comment</label>
-          <textarea
-            id="fb-comment"
-            maxLength={500}
-            placeholder="Optional note, up to 500 characters"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
+          <textarea id="fb-comment" maxLength={500} placeholder="Optional note, up to 500 characters" value={comment} onChange={(e) => setComment(e.target.value)} />
           <div className="actions">
-            <button type="submit" className="btn btn-primary" disabled={!label}>
-              {state === "sending" ? "Saving..." : "Send feedback"}
-            </button>
+            <button type="submit" className="btn btn-primary" disabled={!label}>{state === "sending" ? "Saving..." : "Send feedback"}</button>
             <span className="small">{comment.length}/500</span>
           </div>
         </fieldset>
-        {msg && (
-          <p role="status" className={state === "error" ? "error" : "small"} style={{ marginBottom: 0 }}>
-            {msg}
-          </p>
-        )}
+        {msg && <p role="status" className={state === "error" ? "error" : "small"} style={{ marginBottom: 0 }}>{msg}</p>}
       </form>
     </div>
   );

@@ -17,14 +17,14 @@ export default async function ModelCard() {
 
   return (
     <div className="wrap section" style={{ paddingTop: 48 }}>
-      <header className="center">
+      <header>
         <p className="eyebrow">Model card · {m.name}</p>
-        <h1 className="display" style={{ marginTop: 12 }}>
+        <h1 className="display" style={{ marginTop: 14 }}>
           What it is,
           <br />
           <em>and what it is not.</em>
         </h1>
-        <p className="lede" style={{ margin: "20px auto 0" }}>
+        <p className="lede" style={{ marginTop: 20 }}>
           A research model that classifies single white blood cell images as acute lymphoblastic leukemia (ALL) or normal, with
           calibrated confidence and a refer-to-expert band. It is not a diagnostic device and has not been clinically validated.
         </p>

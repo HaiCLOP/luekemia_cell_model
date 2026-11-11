@@ -1,5 +1,5 @@
 # Assemble the Hugging Face Space (Docker SDK) folder in dist\space.
-# Upload afterwards with:  .venv\Scripts\hf.exe upload <user>/cell-triage-api dist\space . --repo-type space
+# Upload afterwards with:  .venv\Scripts\hf.exe upload <user>/luekemia-cell-api dist\space . --repo-type space
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 $dst = "dist\space"

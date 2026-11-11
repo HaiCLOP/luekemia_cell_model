@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CellMark } from "@/components/CellMark";
+import { Reticle } from "@/components/CellMark";
 import { Uploader } from "@/components/Uploader";
 import results from "@/data/results.json";
 
@@ -9,82 +9,103 @@ export default function Home() {
   const b = results.band;
   return (
     <>
-      <section className="hero wrap">
-        <p className="eyebrow">Acute lymphoblastic leukemia · single-cell microscopy</p>
-        <h1 className="display" style={{ marginTop: 14 }}>
-          Flag the blast cell.
-          <br />
-          <em>Know when to ask.</em>
-        </h1>
-        <p className="lede">
-          Cell Triage looks at one white blood cell and says leukemic, normal, or refer to an expert. The third answer is
-          the point: when the model is unsure it hands the cell to a person instead of guessing.
-        </p>
-        <CellMark className="hero-cell" />
-        <Uploader />
-      </section>
-
-      <section className="wrap" aria-label="Key figures">
-        <div className="ticket">
+      <div className="wrap">
+        <section className="hero" aria-labelledby="hero-title">
           <div>
-            <div className="k">Cell images</div>
-            <div className="v mono">{results.data.images.toLocaleString("en-IN")}</div>
-          </div>
-          <div>
-            <div className="k">Independent subjects</div>
-            <div className="v mono">{results.data.subjects}</div>
-          </div>
-          <div>
-            <div className="k">Validation PR-AUC</div>
-            <div className="v mono">{results.headline.pr_auc.toFixed(3)}</div>
-          </div>
-          <div>
-            <div className="k">Missed leukemic cells</div>
-            <div className="v mono">
-              {pct(b.fixed.miss_rate)} → {pct(b.band.miss_rate)}
+            <p className="eyebrow">Acute lymphoblastic leukemia · single-cell microscopy</p>
+            <h1 id="hero-title" className="display" style={{ marginTop: 18 }}>
+              Flag the blast.
+              <br />
+              <em>Know when to ask.</em>
+            </h1>
+            <p className="lede">
+              Cell Triage reads one white blood cell and answers leukemic, normal, or refer to an expert. The third answer is the
+              point: when the model is unsure, it hands the cell to a person instead of guessing.
+            </p>
+            <div className="hero-meta">
+              <div><span className="label">Validation PR-AUC</span><b>{results.headline.pr_auc.toFixed(3)}</b></div>
+              <div><span className="label">Subjects</span><b>{results.data.subjects}</b></div>
+              <div><span className="label">Per cell</span><b>~65 ms</b></div>
             </div>
           </div>
-        </div>
-        <p className="small center" style={{ marginTop: 12 }}>
-          Validation figures from 18 held-out subjects. The last figure compares a single 0.5 threshold with the referral band,
-          which sends {pct(b.band.referral_rate)} of cells to a person.
-        </p>
-      </section>
 
-      <section className="section wrap">
-        <h2 className="display center">
-          From one cell
-          <br />
-          <em>to an honest answer.</em>
+          <figure className="scope" style={{ margin: 0 }}>
+            <div className="scope-field">
+              <img src="/samples/sample-leukemic.png" alt="A lymphoblast from the C-NMC 2019 validation set, seen through a microscope field of view" />
+            </div>
+            <Reticle className="scope-reticle" />
+            <figcaption className="scope-caption">
+              C-NMC 2019 · subject 22 · <b>ALL</b>
+              <br />
+              model: leukemic, p = 0.72
+            </figcaption>
+          </figure>
+        </section>
+
+        <Uploader />
+
+        <section className="report" aria-label="Key results">
+          <div>
+            <span className="label">Cells audited</span>
+            <div className="v">{results.data.images.toLocaleString("en-IN")}</div>
+            <div className="s">{results.data.corrupt_removed} corrupt and {results.data.duplicates_removed} duplicates removed</div>
+          </div>
+          <div>
+            <span className="label">Independent subjects</span>
+            <div className="v">{results.data.subjects}</div>
+            <div className="s">split by person, never by image</div>
+          </div>
+          <div>
+            <span className="label">Calibration error</span>
+            <div className="v">{results.headline.ece.toFixed(3)}</div>
+            <div className="s">stated confidence matches reality</div>
+          </div>
+          <div>
+            <span className="label">Missed leukemic cells</span>
+            <div className="v">
+              {pct(b.fixed.miss_rate)}<span className="arr" aria-label="to">→</span><span className="to">{pct(b.band.miss_rate)}</span>
+            </div>
+            <div className="s">with {pct(b.band.referral_rate)} of cells referred</div>
+          </div>
+        </section>
+        <p className="small" style={{ marginTop: 12 }}>
+          Validation results on 18 held-out subjects. The final test set stays untouched until every choice is frozen.
+        </p>
+      </div>
+
+      <section className="wrap section">
+        <p className="eyebrow">Protocol</p>
+        <h2 className="display" style={{ marginTop: 14, maxWidth: 760 }}>
+          From one cell <em>to an honest answer.</em>
         </h2>
-        <ol className="steps" style={{ listStyle: "none", padding: 0 }}>
-          <li className="step">
-            <div className="n">1</div>
-            <h3>Upload a cell</h3>
-            <p>A segmented white blood cell image, like the C-NMC 2019 crops the model was trained on.</p>
+        <ol className="protocol">
+          <li>
+            <span className="no">STEP 01</span>
+            <h3>Mount the cell</h3>
+            <p>Upload a segmented white blood cell image, like the C-NMC 2019 crops the model learned from.</p>
           </li>
-          <li className="step">
-            <div className="n">2</div>
-            <h3>Five models vote</h3>
-            <p>Five EfficientNet-B0 networks trained with different seeds score the cell; their average is calibrated.</p>
+          <li>
+            <span className="no">STEP 02</span>
+            <h3>Five models read it</h3>
+            <p>Five EfficientNet-B0 networks trained from different seeds score the cell. Their average is calibrated so 0.8 means about 80%.</p>
           </li>
-          <li className="step">
-            <div className="n">3</div>
+          <li>
+            <span className="no">STEP 03</span>
             <h3>The band decides</h3>
             <p>
-              Below {results.model.t_low.toFixed(2)} is normal, above {results.model.t_high.toFixed(2)} is leukemic, and anything in between
-              goes to an expert.
+              Below {results.model.t_low.toFixed(2)} reads normal, above {results.model.t_high.toFixed(2)} reads leukemic. Anything in between goes to a
+              haematologist.
             </p>
           </li>
-          <li className="step">
-            <div className="n">4</div>
-            <h3>See the evidence</h3>
-            <p>A heatmap shows which part of the image drove the score, and you can tell us if it got it wrong.</p>
+          <li>
+            <span className="no">STEP 04</span>
+            <h3>Check the evidence</h3>
+            <p>A heatmap shows where the model looked, and you can tell us when it got a cell wrong.</p>
           </li>
         </ol>
-        <div className="actions" style={{ justifyContent: "center", marginTop: 44 }}>
-          <Link href="/model-card" className="btn btn-primary">Read the model card</Link>
-          <Link href="/method" className="btn btn-outline">How the evaluation works</Link>
+        <div className="actions" style={{ marginTop: 32 }}>
+          <Link href="/model-card" className="btn btn-primary">Read the model card <span className="arrow">→</span></Link>
+          <Link href="/method" className="btn btn-outline">How it was evaluated</Link>
         </div>
       </section>
     </>

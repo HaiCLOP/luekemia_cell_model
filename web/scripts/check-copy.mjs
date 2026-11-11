@@ -9,7 +9,7 @@ const RULES = [
   [/["'(]\s*(Inter|Geist)\b/, "Inter or Geist font"],
   [/\bInter_|\bGeist\b/, "Inter or Geist font import"],
   [/[\u{1F300}-\u{1FAFF}\u{2728}\u{2B50}]/u, "emoji or sparkle"],
-  [/backdrop-filter|glass/i, "glass card"],
+  [/backdrop-filter|glass-?card|glassmorph/i, "glass card"],
   [/gradient\([^)]*(purple|violet|#8b5cf6|#a855f7|#7c3aed)/i, "purple gradient"],
   [/transition:\s*transform|:hover[^{]*\{[^}]*transform/i, "hover animation"],
   [/radial-gradient\([^)]*dot|background-image:\s*radial-gradient\(circle/i, "dot-grid background"],

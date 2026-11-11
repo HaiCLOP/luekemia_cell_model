@@ -1,41 +1,28 @@
-/**
- * Lymphoblast motif in the site greens: thin cytoplasm rim, large slightly indented nucleus with fine chromatin
- * stipple and one off-centre nucleolus. Asymmetric on purpose so it reads as a cell, not a face. Decorative.
- */
-const STIPPLE: [number, number, number][] = [
-  [78, 70, 2.2], [96, 62, 1.6], [116, 70, 2], [132, 86, 1.5], [70, 92, 1.8], [90, 88, 1.4], [108, 96, 2.1],
-  [128, 108, 1.7], [64, 116, 1.5], [84, 112, 2], [102, 120, 1.4], [120, 128, 1.9], [78, 134, 1.6], [96, 142, 2.1],
-  [114, 146, 1.4], [140, 120, 1.3], [88, 156, 1.5], [62, 102, 1.2], [136, 140, 1.6], [104, 78, 1.3],
-];
-
-export function CellMark({ className }: { className?: string }) {
+/** Microscope reticle drawn over the field of view: crosshair, ring ticks and a 10 µm scale bar. Decorative. */
+export function Reticle({ className }: { className?: string }) {
+  const ticks = Array.from({ length: 36 }, (_, i) => i * 10);
   return (
     <svg className={className} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
-      <path
-        d="M101 9c48 2 86 37 88 87 2 52-36 95-90 95-50 0-90-37-90-88C9 52 50 7 101 9z"
-        fill="#d4f5c0"
-        stroke="#1a7a3a"
-        strokeWidth="2.5"
-      />
-      <path
-        d="M103 30c38 1 66 30 66 68 0 21-6 33-19 43-6 5-6 13-12 20-12 13-30 17-45 15-36-4-60-31-60-68 0-44 30-79 70-78z"
-        fill="#1a7a3a"
-      />
-      {STIPPLE.map(([x, y, r], i) => (
-        <circle key={i} cx={x} cy={y} r={r} fill="#12351d" opacity=".55" />
-      ))}
-      <ellipse cx="124" cy="78" rx="12" ry="9" fill="#b5f800" transform="rotate(-20 124 78)" />
-    </svg>
-  );
-}
-
-/** Small glyph next to the wordmark (mirrors xohari's brand glyph). */
-export function BrandGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <circle cx="12" cy="12" r="10" fill="#d4f5c0" />
-      <path d="M12.3 5c3.6.1 6 2.7 6 6.2 0 2-.6 3-1.7 4-.6.5-.6 1.3-1.2 2-1.2 1.2-2.8 1.6-4.2 1.4C7.9 18.3 5.8 15.8 5.8 12.4 5.8 8.3 8.6 4.9 12.3 5z" fill="#1a7a3a" />
-      <ellipse cx="14.3" cy="9.4" rx="1.6" ry="1.2" fill="#b5f800" />
+      <circle cx="100" cy="100" r="99" fill="none" stroke="rgba(255,255,255,.35)" strokeWidth=".8" />
+      {ticks.map((a) => {
+        const long = a % 90 === 0;
+        const r1 = long ? 88 : 93;
+        const rad = (a * Math.PI) / 180;
+        return (
+          <line key={a} x1={100 + r1 * Math.cos(rad)} y1={100 + r1 * Math.sin(rad)} x2={100 + 99 * Math.cos(rad)} y2={100 + 99 * Math.sin(rad)}
+            stroke="rgba(255,255,255,.55)" strokeWidth={long ? 1 : 0.6} />
+        );
+      })}
+      <line x1="100" y1="6" x2="100" y2="80" stroke="rgba(255,255,255,.28)" strokeWidth=".6" strokeDasharray="2 3" />
+      <line x1="100" y1="120" x2="100" y2="194" stroke="rgba(255,255,255,.28)" strokeWidth=".6" strokeDasharray="2 3" />
+      <line x1="6" y1="100" x2="80" y2="100" stroke="rgba(255,255,255,.28)" strokeWidth=".6" strokeDasharray="2 3" />
+      <line x1="120" y1="100" x2="194" y2="100" stroke="rgba(255,255,255,.28)" strokeWidth=".6" strokeDasharray="2 3" />
+      <g transform="translate(120 160)">
+        <line x1="0" y1="0" x2="36" y2="0" stroke="#fff" strokeWidth="1.6" />
+        <line x1="0" y1="-3" x2="0" y2="3" stroke="#fff" strokeWidth="1" />
+        <line x1="36" y1="-3" x2="36" y2="3" stroke="#fff" strokeWidth="1" />
+        <text x="18" y="-6" textAnchor="middle" fill="#fff" fontSize="7" fontFamily="monospace">10 µm</text>
+      </g>
     </svg>
   );
 }
