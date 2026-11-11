@@ -16,8 +16,11 @@ calibrated probabilities, and a referral band that hands uncertain cells to a pe
 | Missed leukemic cells | 7.55% with a 0.5 threshold, **2.74% with the referral band** while referring 8.1% of cells (nested cross-fit; the 2% target is met in-sample only) |
 | Referral efficiency | 39.7 misses avoided per 100 referred cells vs 5.0 for random referral |
 
-Full tables, ablations and failure analysis: [MODEL_CARD.md](MODEL_CARD.md), `reports/`. The test split (26 subjects) is
-untouched and will be evaluated once at the end, together with the external ALL-IDB2 set.
+**Final test, 26 held-out subjects, run once** (`reports/final/`): PR-AUC **0.932** (0.820 to 0.973),
+ROC-AUC 0.890, ECE 0.032. The referral band missed **2.80%** of leukemic cells while
+referring 12.3% (normal cells called leukemic: 28.8%).
+
+Full tables, ablations and failure analysis: [MODEL_CARD.md](MODEL_CARD.md), `reports/`.
 
 **Whole smears and another hospital.** A cell finder (`src/vision/segment.py`) now cuts every white cell out of a stained
 smear and puts it on C-NMC scale, using red cells as a ruler. It finds 99.7% of the 372 boxed white cells in BCCD. The

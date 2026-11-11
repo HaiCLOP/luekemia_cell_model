@@ -61,7 +61,30 @@ last three blocks (up to 25 epochs, 1e-4, cosine). Batch 16 with gradient accumu
 on the GTX 1650), class-weighted BCE, flips, 90-degree rotations, small affine and brightness/contrast jitter. Early
 stopping on validation PR-AUC. Seeds 42 to 46.
 
-## Evaluation (validation subjects only; test set not yet evaluated)
+## Final test (26 held-out subjects, evaluated once)
+
+Run once on 2026-11-11 with `python -m src.final_test --split test --confirm-final`, after every modelling
+choice was frozen: model `effb0-ens5-v1` (ONNX sha256 `bad021f68226`), temperature and band unchanged,
+source commit `8d1d789`. These subjects were never used for training, checkpoint choice, calibration or
+the band. 2,414 cells, all passed the input checks. 95% intervals resample whole subjects.
+
+| Metric | Test (26 subjects) | Validation (18 subjects) |
+|---|---|---|
+| PR-AUC | **0.932** (0.820 to 0.973) | 0.974 |
+| ROC-AUC | **0.890** (0.830 to 0.926) | 0.952 |
+| ECE (calibrated) | **0.032** | 0.023 |
+| Recall / specificity at 0.5 | 0.903 / 0.712 | 0.925 / 0.818 |
+| Referral band: leukemic cells missed | **2.80%** | 2.74% (nested cross-fit) |
+| Referral band: cells referred | 12.3% | 8.1% |
+| Referral band: normal cells called leukemic | 28.8% | 18.4% |
+
+The drop from validation to test is expected (validation chose the checkpoints and fitted the calibration), and the
+intervals are wide because there are only 26 subjects. The referral band held its miss rate on new subjects (2.8%) at
+the cost of referring more cells and raising more false alarms than on validation. Exploratory subject level (mean cell
+score, not a validated patient endpoint): all 13 ALL subjects scored above 0.5, and 3 of
+13 normal subjects did too.
+
+## Evaluation on validation subjects
 
 95% intervals resample whole subjects 1,000 times.
 
@@ -225,9 +248,9 @@ help is training data from more than one lab, with patient-level splits, rather 
 
 ## Limitations
 
-- One dataset, one acquisition setup; external evaluation on ALL-IDB2 is pending.
+- One dataset, one acquisition setup; ALL-IDB2 access was never granted. The outside smear tests above (Taleqani, BCCD)
+  show the model does not transfer to other labs.
 - 92 independent subjects; most differences between models are within the confidence intervals.
-- Validation numbers only until the one-time test-set evaluation is published.
 
 ## Citation
 

@@ -14,6 +14,7 @@ export default async function ModelCard() {
   const d = results.data;
   const b = results.band;
   const e = results.explain;
+  const t = results.test!;
 
   return (
     <div className="wrap section" style={{ paddingTop: 48 }}>
@@ -63,8 +64,8 @@ export default async function ModelCard() {
       <section style={{ marginTop: 56 }} aria-labelledby="perf">
         <h2 id="perf" className="display">Performance on <em>validation subjects.</em></h2>
         <p className="lede">
-          All numbers below are on the validation subjects with 95% intervals from resampling whole subjects. The separate test set
-          ({d.splits.test.subjects} subjects) is untouched and will be reported once, after every choice is frozen.
+          The comparison below is on the validation subjects, with 95% intervals from resampling whole subjects. The final test on
+          {t.subjects} separate subjects, run once, is further down: PR-AUC {f3(t.pr_auc)}.
         </p>
         <div className="card table-wrap" style={{ marginTop: 20 }}>
           <table>
@@ -128,11 +129,26 @@ export default async function ModelCard() {
       </section>
 
       <section className="card" style={{ marginTop: 40 }} aria-labelledby="ext">
-        <h2 id="ext" className="eyebrow">External and test results</h2>
-        <p style={{ marginBottom: 0 }}>
-          <span className="chip">Pending</span> Final test-set numbers and the external evaluation on ALL-IDB2 (a different lab and
-          microscope) are not published yet. ALL-IDB2 access has been requested from the University of Milan; its images will never be shown
-          here, only aggregate metrics.
+        <h2 id="ext" className="eyebrow">Final test · {t.subjects} held-out subjects · run once on {t.date}</h2>
+        <p className="small" style={{ marginTop: 6 }}>
+          These subjects were never used for training, picking checkpoints, calibration or the referral band. The model, temperature
+          and band were frozen first; the run is recorded with its code version and model fingerprint.
+        </p>
+        <table>
+          <thead><tr><th scope="col">Metric</th><th scope="col" className="num">Test</th><th scope="col" className="num">Validation</th></tr></thead>
+          <tbody>
+            <tr className="hl"><td>PR-AUC</td><td className="num">{f3(t.pr_auc)} <span className="ci">{ci(t.pr_auc_ci)}</span></td><td className="num">{f3(results.headline.pr_auc)}</td></tr>
+            <tr><td>ROC-AUC</td><td className="num">{f3(t.roc_auc)} <span className="ci">{ci(t.roc_auc_ci)}</span></td><td className="num">{f3(results.headline.roc_auc)}</td></tr>
+            <tr><td>Calibration error (ECE, deployed)</td><td className="num">{f3(t.ece)}</td><td className="num">{f3(results.headline.ece_calibrated)}</td></tr>
+            <tr><td>Leukemic cells missed (referral band)</td><td className="num">{pct(t.band.miss_rate)}</td><td className="num">{pct(b.band.miss_rate)}</td></tr>
+            <tr><td>Cells referred to an expert</td><td className="num">{pct(t.band.referral_rate)}</td><td className="num">{pct(b.band.referral_rate)}</td></tr>
+            <tr><td>Normal cells called leukemic</td><td className="num">{pct(t.band.false_alarm_rate)}</td><td className="num">{pct(b.band.false_alarm_rate)}</td></tr>
+          </tbody>
+        </table>
+        <p className="small" style={{ marginBottom: 0 }}>
+          Lower than validation, as expected, and the intervals are wide with {t.subjects} subjects. The band kept its miss rate on new
+          people by referring more cells. ALL-IDB2 access was never granted; outside-lab smear tests (model card, smear section)
+          show the model does not transfer to other labs.
         </p>
       </section>
 
@@ -162,7 +178,7 @@ export default async function ModelCard() {
           <li>Single-cell crops from one dataset and one acquisition setup. Whole slides, other stains and other microscopes are out of scope.</li>
           <li>Only {d.subjects} independent subjects; intervals are wide and most differences between models are not established.</li>
           <li>Over-reliance on cell size, which depends on magnification. Expect a drop on images from other labs.</li>
-          <li>Validation numbers only until the one-time test run is published.</li>
+          <li>On {t.subjects} held-out subjects, PR-AUC fell from {f3(results.headline.pr_auc)} on validation to {f3(t.pr_auc)}.</li>
           <li>Images that fail the input checks (not square, no black background, several objects, no detail) get no score at all. These checks catch obvious misuse; they are not a full out-of-distribution detector.</li>
           <li>The score describes one cropped cell. It is not a probability that a person has leukemia.</li>
           <li>Not a medical device. Do not use it to make or support clinical decisions.</li>

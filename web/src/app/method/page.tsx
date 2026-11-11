@@ -74,7 +74,7 @@ export default function Method() {
         <ul className="limits" style={{ paddingLeft: 18 }}>
           <li>Every interval comes from resampling whole subjects, because cells from one person are not independent.</li>
           <li>Thresholds and temperature are fitted on part of the validation subjects and scored on the rest.</li>
-          <li>The test set is evaluated once, after every choice is frozen, with the date and code version recorded.</li>
+          <li>The test set was evaluated once, after every choice was frozen, with the date, code version and model fingerprint recorded.</li>
           <li>An external dataset from another lab is used only for evaluation, never for training or tuning.</li>
         </ul>
         <div className="actions">

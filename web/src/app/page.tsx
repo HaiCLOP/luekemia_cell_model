@@ -69,7 +69,9 @@ export default function Home() {
           </div>
         </section>
         <p className="small" style={{ marginTop: 12 }}>
-          Validation results on 18 subjects not used for training; the referral figures are nested cross-fitted over those subjects. The final test set stays untouched until every choice is frozen.
+          Validation results on 18 subjects not used for training; the referral figures are nested cross-fitted over those subjects.
+          On the final test, {results.test?.subjects} more subjects evaluated once, PR-AUC was {results.test?.pr_auc.toFixed(3)} and the band missed{" "}
+          {results.test ? pct(results.test.band.miss_rate) : ""} of leukemic cells.
         </p>
       </div>
 

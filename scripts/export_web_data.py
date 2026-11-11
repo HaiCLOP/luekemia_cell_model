@@ -29,6 +29,19 @@ def ci(s: str):
     return [float(m[0]), float(m[1])] if len(m) == 2 else None
 
 
+def _final_test():
+    """The one-time sealed test result for the deployed model, if it has been run (reports/final/)."""
+    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())
+    f = REP / "final" / f"test_{meta['onnx_sha256'][:12]}" / "summary.json"
+    if not f.exists():
+        return None
+    t = json.loads(f.read_text())
+    c = t["cell_level"]
+    return {"subjects": t["units"], "cells": t["n_scored"], "date": t["evaluated_at"][:10],
+            "pr_auc": c["pr_auc"]["value"], "pr_auc_ci": c["pr_auc"]["ci95"], "roc_auc": c["roc_auc"]["value"],
+            "roc_auc_ci": c["roc_auc"]["ci95"], "ece": c["ece_calibrated"]["value"], "band": t["referral_band"]}
+
+
 def main() -> None:
     cfg = load_config()
     meta = json.loads((ROOT / "models" / "model_meta.json").read_text())
@@ -104,7 +117,7 @@ def main() -> None:
                     "size_rho_normal_seeds": [min(seeds), max(seeds)],
                     "size_rho_scalejit": float(size["abl_scalejit_s42"]["rho_size_normal"]) if "abl_scalejit_s42" in size else None},
         "external": None,
-        "test": None,
+        "test": _final_test(),
         "disclaimer": cfg["disclaimer"],
     }
     (WEB / "src" / "data").mkdir(parents=True, exist_ok=True)

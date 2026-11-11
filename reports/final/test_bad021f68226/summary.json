@@ -1,0 +1,97 @@
+{
+  "set": "test",
+  "evaluated_at": "2026-11-11T18:29:37.387874+00:00",
+  "source_commit": "8d1d789380d271e0b702dcc8e20444c56ba523d1",
+  "model": {
+    "name": "effb0-ens5-v1",
+    "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
+    "temperature": 1.0728,
+    "t_low": 0.2,
+    "t_high": 0.5
+  },
+  "n_images": 2414,
+  "n_scored": 2414,
+  "input_check_rejections": {},
+  "units": 26,
+  "interval_note": "subject-clustered bootstrap",
+  "cell_level": {
+    "calibrated_threshold_0.5": {
+      "n": 2414,
+      "recall": 0.9030453697949037,
+      "precision": 0.8623145400593472,
+      "specificity": 0.7118012422360248,
+      "f1": 0.8822100789313904,
+      "accuracy": 0.8392709196354599,
+      "balanced_accuracy": 0.8074233060154643,
+      "roc_auc": 0.8898223888144714,
+      "pr_auc": 0.9321554503705425,
+      "ece": 0.03175393090569199,
+      "nll": 0.3878805861025969,
+      "brier": 0.11984691323822244,
+      "tp": 1453,
+      "fp": 232,
+      "tn": 573,
+      "fn": 156
+    },
+    "pr_auc": {
+      "value": 0.9321554503705425,
+      "ci95": [
+        0.8197762381684959,
+        0.9734228566038745
+      ]
+    },
+    "roc_auc": {
+      "value": 0.8898223888144714,
+      "ci95": [
+        0.8301590157976625,
+        0.9257275998293749
+      ]
+    },
+    "ece_calibrated": {
+      "value": 0.03175393090569199,
+      "ci95": [
+        0.02809431734889831,
+        0.12145265878376689
+      ]
+    },
+    "ece_raw": {
+      "value": 0.0318053051452601,
+      "ci95": [
+        0.026687558822469162,
+        0.12068095618582003
+      ]
+    }
+  },
+  "referral_band": {
+    "t_low": 0.2,
+    "t_high": 0.5,
+    "referral_rate": 0.12344656172328086,
+    "miss_rate": 0.027967681789931635,
+    "false_alarm_rate": 0.28819875776397513,
+    "auto_accuracy": 0.8690926275992439,
+    "coverage": 0.8765534382767192
+  },
+  "subject_level_exploratory": {
+    "note": "mean cell probability per subject; not a validated patient-level endpoint",
+    "n_subjects": 26,
+    "subjects_leukemic": 13,
+    "metrics_threshold_0.5": {
+      "n": 26,
+      "recall": 1.0,
+      "precision": 0.8125,
+      "specificity": 0.7692307692307693,
+      "f1": 0.896551724137931,
+      "accuracy": 0.8846153846153846,
+      "balanced_accuracy": 0.8846153846153846,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "ece": 0.27987713740618464,
+      "nll": 0.3518569561325604,
+      "brier": 0.10040775207031075,
+      "tp": 13,
+      "fp": 3,
+      "tn": 10,
+      "fn": 0
+    }
+  }
+}

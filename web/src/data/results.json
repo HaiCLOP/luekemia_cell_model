@@ -222,6 +222,30 @@
     "size_rho_scalejit": 0.6190499238407847
   },
   "external": null,
-  "test": null,
+  "test": {
+    "subjects": 26,
+    "cells": 2414,
+    "date": "2026-11-11",
+    "pr_auc": 0.9321554503705425,
+    "pr_auc_ci": [
+      0.8197762381684959,
+      0.9734228566038745
+    ],
+    "roc_auc": 0.8898223888144714,
+    "roc_auc_ci": [
+      0.8301590157976625,
+      0.9257275998293749
+    ],
+    "ece": 0.03175393090569199,
+    "band": {
+      "t_low": 0.2,
+      "t_high": 0.5,
+      "referral_rate": 0.12344656172328086,
+      "miss_rate": 0.027967681789931635,
+      "false_alarm_rate": 0.28819875776397513,
+      "auto_accuracy": 0.8690926275992439,
+      "coverage": 0.8765534382767192
+    }
+  },
   "disclaimer": "Research demo. Not for clinical use."
 }
