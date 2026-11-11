@@ -199,3 +199,62 @@ def test_real_weights_if_present():
     m = Model(real)
     pred = m.predict(Image.open(io.BytesIO(cell())))
     assert pred.decision in {"leukemic", "normal", "refer_to_expert"} and len(pred.member_probs) == 5
+
+
+# ------------------------------------------------------------------ /analyze-smear
+def _smear_png(**kw) -> bytes:
+    from tests.test_segment import smear
+
+    img, _ = smear(**kw)
+    buf = io.BytesIO()
+    Image.fromarray(img).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_smear_finds_and_scores_cells(client):
+    r = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=3, lobed=1), "image/png")})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    s = j["summary"]
+    assert s["cells_found"] == 4 and s["cells_scored"] == 3 and s["not_scored"] == 1
+    assert j["scale_source"] == "red_cells_in_image" and j["rbc_diameter_px"] > 0
+    lobed = [c for c in j["cells"] if not c["lymphoid_like"]]
+    assert lobed and lobed[0]["decision"] == "not_scored" and lobed[0]["prob_calibrated"] is None
+    assert s["smear_decision"] in {"leukemic", "normal", "refer_to_expert"}
+    assert j["disclaimer"] == DISCLAIMER
+    Image.open(io.BytesIO(base64.b64decode(j["overlay_png_base64"]))).verify()
+
+
+def test_smear_uses_given_pixel_size(client):
+    r = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=2), "image/png")}, data={"um_per_px": "0.27"})
+    j = r.json()
+    assert j["scale_source"] == "um_per_px" and abs(j["rbc_diameter_px"] - 7.5 / 0.27) < 0.2
+
+
+def test_smear_without_white_cells(client):
+    j = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=0), "image/png")}).json()
+    assert j["summary"]["cells_found"] == 0 and j["summary"]["smear_decision"] == "no_scorable_cells"
+
+
+def test_smear_rejects_tiny_and_bad_files(client):
+    buf = io.BytesIO()
+    Image.fromarray(np.zeros((64, 64, 3), np.uint8)).save(buf, format="PNG")
+    assert client.post("/analyze-smear", files={"file": ("t.png", buf.getvalue(), "image/png")}).status_code == 422
+    assert client.post("/analyze-smear", files={"file": ("x.txt", b"nope", "text/plain")}).status_code == 415
+
+
+def test_out_of_distribution_logits_get_no_score(client):
+    """If the network's internal scores explode (inputs unlike anything it trained on), refuse to answer."""
+    import api.main as main
+
+    sess = main.state["model"].session
+    old = sess.logit
+    sess.logit = 900.0
+    try:
+        r = post(client, cell())
+        assert r.status_code == 422 and r.json()["code"] == "out_of_distribution"
+        j = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=2), "image/png")}).json()
+        assert j["summary"]["cells_scored"] == 0
+        assert all("out of distribution" in (c["reason"] or "") for c in j["cells"] if c["lymphoid_like"])
+    finally:
+        sess.logit = old

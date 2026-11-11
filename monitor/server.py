@@ -292,6 +292,26 @@ def gpu() -> dict | None:
         return None
 
 
+def jobs() -> list[dict]:
+    """Long jobs that report through src/progress.py. A 'running' job whose process is gone is shown as stale."""
+    out = []
+    for f in sorted((REPORTS / "live" / "jobs").glob("*.json")):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        if d.get("status") == "running":
+            try:
+                age = time.time() - datetime.fromisoformat(d["updated"]).timestamp()
+            except Exception:
+                age = 0
+            if age > 120:
+                d["status"] = "stale"
+        out.append(d)
+    order = {"running": 0, "stale": 1, "failed": 2, "finished": 3}
+    return sorted(out, key=lambda d: (order.get(d.get("status"), 9), d.get("updated", "")), reverse=False)
+
+
 def status() -> dict:
     queue = parse_queue()
     by_name = {j["name"]: j for j in queue}
@@ -362,6 +382,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(status())
             except Exception as e:  # never take the page down
                 return self._json({"error": str(e)})
+        if self.path.startswith("/api/jobs"):
+            try:
+                return self._json({"jobs": jobs(), "now": datetime.now().isoformat()})
+            except Exception as e:
+                return self._json({"error": str(e), "jobs": []})
         if self.path.startswith("/api/log/"):
             name = re.sub(r"[^\w.-]", "", self.path.rsplit("/", 1)[-1])
             return self._json({"name": name, "epochs": parse_epochs(name), "tail": log_tail(name, 40)})
@@ -377,5 +402,5 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Training monitor on http://127.0.0.1:{PORT}")
+    print(f"Training monitor on http://127.0.0.1:{PORT}   (long jobs: http://127.0.0.1:{PORT}/jobs.html)")
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

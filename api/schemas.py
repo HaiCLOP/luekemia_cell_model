@@ -54,3 +54,38 @@ class ModelCard(BaseModel):
     input: dict
     exported: str
     disclaimer: str = DISCLAIMER
+
+
+class SmearCell(BaseModel):
+    id: int
+    box: list[int] = Field(description="x0, y0, x1, y1 in the uploaded image")
+    lymphoid_like: bool = Field(description="one compact round nucleus; only these cells are scored")
+    touches_border: bool
+    prob_calibrated: float | None = None
+    decision: Literal["leukemic", "normal", "refer_to_expert", "not_scored"]
+    reason: str | None = None
+
+
+class SmearSummary(BaseModel):
+    cells_found: int
+    cells_scored: int
+    leukemic: int
+    normal: int
+    refer_to_expert: int
+    not_scored: int
+    mean_prob_calibrated: float | None = Field(description="research aggregate over scored cells, not a patient probability")
+    smear_decision: Literal["leukemic", "normal", "refer_to_expert", "no_scorable_cells"]
+
+
+class SmearResponse(BaseModel):
+    model_version: str
+    rbc_diameter_px: float | None
+    scale_source: Literal["red_cells_in_image", "um_per_px", "rbc_diameter_px", "unknown"]
+    scale_to_cnmc: float | None
+    band: Band
+    summary: SmearSummary
+    cells: list[SmearCell]
+    overlay_png_base64: str
+    warnings: list[str]
+    latency_ms: int
+    disclaimer: str = DISCLAIMER

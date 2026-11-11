@@ -49,5 +49,7 @@
   "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
   "exported": "2026-11-09T18:18:20.894193+00:00",
   "disclaimer": "Research demo. Not for clinical use.",
-  "source_note": "Exported before the repository had commits. The export code is in commit 956490a; the ONNX file is identified by onnx_sha256."
+  "source_note": "Exported before the repository had commits. The export code is in commit 956490a; the ONNX file is identified by onnx_sha256.",
+  "ood_max_abs_logit": 25.0,
+  "ood_note": "A cell is refused as out of distribution if any ensemble member's |logit| exceeds this. On the 1,810 C-NMC validation cells the largest was 14.9 (99th percentile 12.3); smear crops in raw colours reached 12,000+."
 }

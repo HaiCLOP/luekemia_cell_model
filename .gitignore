@@ -34,3 +34,6 @@ dist/
 # misc
 .DS_Store
 Thumbs.db
+
+# smear development overlays and run logs
+reports/smear/_*

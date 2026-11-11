@@ -110,6 +110,73 @@ roughly 0.03 to 0.07 AUC of the headline number. The errors follow size closely:
 the referral band rises from 2.5% in the smallest area quintile to 51% in the largest. Any change of magnification or
 crop policy moves cells between these quintiles, which is why external validation comes before any new disease class.
 
+## Smear pipeline (cell finder in front of the classifier)
+
+`src/vision/segment.py` turns a stained peripheral-blood smear image into C-NMC-style inputs. It is classical image
+processing with no training: white balance, a stain map, white-cell nuclei as the top class of a three-class Otsu split,
+watershed only for touching round nuclei, and a thin cytoplasm rim. Red cells (about 7.5 µm) act as a ruler, so every
+cell is rescaled to the magnification of C-NMC before it is cut onto a black 450 px frame. The red-cell size is pooled over
+all images from one microscope, or taken from a pixel size the user enters. Cells with lobed or irregular nuclei are
+outlined but not scored. The API exposes this as `POST /analyze-smear`, and the website as the Smear page.
+
+Checked on BCCD (364 smear images from healthy donors, MIT licence; `python -m src.smear_eval bccd`):
+
+| Check | Result |
+|---|---|
+| White cells found (372 boxed) | recall 99.7%, precision 96.7%, 0.1 s per image |
+| Boxed cells split into several detections | 7 of 372 |
+| Red-cell ruler, pooled over the set | 87.7 px against 104.5 px from the boxes (−16%; boxes include margin, so the true error is smaller) |
+| Ruler, single image | 43% of images within 15% of the box median; per-image CV 24% |
+| Cellpose 3 instead of the classical finder (61-image subset) | recall 82.5% vs 98.4%, 12x slower: not used |
+
+**Negative result.** On BCCD's healthy smears, 92% of the cells the finder kept as lymphoid-like were called leukemic. Two
+causes: (1) the shape filter lets many granulocytes through, because BCCD is mostly neutrophils and some lobed nuclei look
+compact once lobes merge; (2) the classifier does not transfer. Even a clear normal lymphocyte scored 0.80 after colour
+normalisation to C-NMC (Reinhard, `models/cnmc_stain.json`). BCCD images are softer and lower in resolution, and the
+model learned C-NMC-specific colour, texture and size. The pipeline finds cells reliably; the single-cell model is the
+weak link outside C-NMC. Results on an ALL dataset from another hospital are below.
+
+**Out-of-distribution guard.** On smear crops in their original colours, ensemble members produced logits of 12,000 to
+36,000, against a maximum of 14.9 over all 1,810 C-NMC validation cells. At that size each member's answer is 0 or 1, and
+ONNX on CPU, PyTorch on CPU and PyTorch on GPU disagreed by up to 0.21 in probability: the score was decided by rounding,
+not by the cell. After normalising colours to C-NMC the logits fell back into range (median 1.4, max 7.5) and the backends
+agreed to 0.0003. Two consequences, both in the code now:
+
+- smear crops are always colour-normalised to C-NMC before scoring (`models/cnmc_stain.json`);
+- any input where a member's |logit| exceeds 25 (`ood_max_abs_logit` in `models/model_meta.json`) is refused as
+  `out_of_distribution`, by both `/predict` and `/analyze-smear`, instead of getting a confident-looking number.
+
+### Outside test: Taleqani Hospital ALL smears
+
+3,216 peripheral-blood smear images (after removing exact copies) from Taleqani Hospital, Tehran (Aria et al. 2021,
+doi 10.34740/KAGGLE/DSV/2175623): 2,712 from B-ALL patients (Early, Pre and Pro subtypes) and 504 "benign" smears from
+patients without ALL whose lymphoid cells are hematogones, harmless B-cell precursors that look very like blasts. The
+images are only 224 x 224 px, so a red cell is about 17 px wide and every cut-out is enlarged about 9 times. No patient IDs
+are published, so the intervals below resample images and are optimistic. `python -m src.smear_eval taleqani`
+(26 minutes on the GTX 1650; GPU scores matched the deployed ONNX file to 0.0003). The analysis plan is in the script's
+docstring and was fixed before the first result was read.
+
+| Crop setting (smear score = mean of its cells) | Cells refused by the guard | Smear ROC-AUC (95% CI) | Benign smears called leukemic | ALL smears missed |
+|---|---|---|---|---|
+| **Ruler scale + colour normalised to C-NMC (main result)** | 0% | **0.688 (0.661 to 0.713)** | 66.8% | 0.3% |
+| Ruler scale, original colours (the pre-planned primary) | 87% | 0.708 unguarded; meaningless, see above | 80.9% | 0.0% |
+| Ruler x0.8, original colours | 77% | 0.751 unguarded | 64.0% | 0.2% |
+| Ruler x1.2, original colours | 92% | 0.694 unguarded | 86.7% | 0.0% |
+| Every cell resized to a typical C-NMC cell, original colours | 93% | 0.730 unguarded | 91.1% | 0.0% |
+| No rescaling | 0.1% | 0.506 | 0.0% | 57.4% |
+
+With 84% of smears malignant, a PR-AUC of 0.895 for the main result is only modestly above the 0.843 a coin would get.
+Only the main row is a valid measurement: in every original-colour row most cells push the network far outside its
+normal range, so those AUCs come from scores that rounding decides. The honest summary is that **the C-NMC model, put
+behind a working cell finder, ranks ALL smears above hematogone smears somewhat better than chance, but at its deployed
+thresholds it calls two thirds of benign smears leukemic.** It is not usable on another hospital's smears as it stands.
+On BCCD's healthy smears the same setting calls 90% of the kept cells leukemic (`reports/smear/bccd_classic.json`).
+
+What this points to, in order: (1) a learned white-cell type filter, so granulocytes and monocytes never reach the
+classifier; (2) retraining with colour, blur and resolution augmentation, or a stain-invariant backbone, then a fresh
+outside evaluation; (3) a properly resolved external set with patient IDs, so smear-level and patient-level results can
+be stated with honest intervals.
+
 ## Limitations
 
 - One dataset, one acquisition setup; external evaluation on ALL-IDB2 is pending.

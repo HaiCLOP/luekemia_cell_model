@@ -24,6 +24,20 @@ Checked 2026-11-09. Raw data is never committed to this repository.
 - Citation: Labati, R. D., Piuri, V., & Scotti, F. (2011). ALL-IDB: The acute lymphoblastic leukemia image database
   for image processing. 18th IEEE International Conference on Image Processing (ICIP), 2045-2048.
 
+## BCCD (cell-finder check and sample smears)
+
+- Source: https://github.com/Shenggan/BCCD_Dataset, MIT licence, (c) 2017 Shenggan. 364 smear images with boxes.
+- Used to measure white-cell finding and the red-cell ruler, and as a healthy-donor check. Two images are shipped as
+  sample smears on the website (`web/public/samples/smear-bccd-*.jpg`) under the MIT licence.
+
+## Taleqani Hospital ALL dataset (outside smear-level evaluation only)
+
+- Aria, M., Ghaderzadeh, M., Bashash, D., Abolghasemi, H., Asadi, F., & Hosseini, A. (2021). Acute lymphoblastic
+  leukemia (ALL) image dataset. Kaggle. https://doi.org/10.34740/KAGGLE/DSV/2175623
+- Read from the Hugging Face mirror `pritam06/leukemia-cancer-data`. Check the licence on the original Kaggle page before
+  any redistribution; this project redistributes none of its images and reports aggregate metrics only. Never used for
+  training, threshold selection or tuning.
+
 ## Model weights
 
 Trained only on C-NMC (CC BY 3.0), so weights can be published on Hugging Face with the citation above in the model card.

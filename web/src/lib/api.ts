@@ -82,3 +82,54 @@ export function previewDataUrl(file: File, size = 448): Promise<string> {
     img.src = url;
   });
 }
+
+export type SmearDecision = Decision | "not_scored";
+
+export interface SmearCell {
+  id: number;
+  box: number[];
+  lymphoid_like: boolean;
+  touches_border: boolean;
+  prob_calibrated: number | null;
+  decision: SmearDecision;
+  reason: string | null;
+}
+
+export interface SmearResponse {
+  model_version: string;
+  rbc_diameter_px: number | null;
+  scale_source: "red_cells_in_image" | "um_per_px" | "rbc_diameter_px" | "unknown";
+  scale_to_cnmc: number | null;
+  band: { t_low: number; t_high: number };
+  summary: {
+    cells_found: number;
+    cells_scored: number;
+    leukemic: number;
+    normal: number;
+    refer_to_expert: number;
+    not_scored: number;
+    mean_prob_calibrated: number | null;
+    smear_decision: Decision | "no_scorable_cells";
+  };
+  cells: SmearCell[];
+  overlay_png_base64: string;
+  warnings: string[];
+  latency_ms: number;
+  disclaimer: string;
+}
+
+export const SMEAR_MAX_BYTES = 10 * 1024 * 1024;
+
+export async function analyzeSmear(file: File, umPerPx?: number): Promise<SmearResponse> {
+  const body = new FormData();
+  body.append("file", file);
+  if (umPerPx) body.append("um_per_px", String(umPerPx));
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/analyze-smear`, { method: "POST", body });
+  } catch {
+    throw new Error("Could not reach the analysis service. Check that the API is running and try again.");
+  }
+  if (!res.ok) throw new Error(await errorText(res));
+  return res.json();
+}

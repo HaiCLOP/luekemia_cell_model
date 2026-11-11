@@ -18,6 +18,7 @@ for _k, _v in {
     "HF_HOME": "E:/cache/hf",
     "TORCH_HOME": "E:/cache/torch",
     "PIP_CACHE_DIR": "E:/cache/pip",
+    "CELLPOSE_LOCAL_MODELS_PATH": "E:/cache/cellpose",
 }.items():
     os.environ.setdefault(_k, _v)
 

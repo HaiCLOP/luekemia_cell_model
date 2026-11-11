@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/", label: "Analyse", n: "01" },
-  { href: "/model-card", label: "Model card", n: "02" },
-  { href: "/method", label: "Method", n: "03" },
+  { href: "/", label: "Cell", n: "01" },
+  { href: "/smear", label: "Smear", n: "02" },
+  { href: "/model-card", label: "Model card", n: "03" },
+  { href: "/method", label: "Method", n: "04" },
 ];
 
 export function SiteHeader() {

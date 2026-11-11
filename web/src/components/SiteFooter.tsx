@@ -18,6 +18,7 @@ export function SiteFooter() {
           <span className="label">Explore</span>
           <ul>
             <li><Link href="/">Analyse a cell</Link></li>
+            <li><Link href="/smear">Analyse a smear</Link></li>
             <li><Link href="/model-card">Model card</Link></li>
             <li><Link href="/method">Method</Link></li>
             <li><a href={REPO} rel="noopener noreferrer">Source code</a></li>
@@ -28,6 +29,7 @@ export function SiteFooter() {
           <ul>
             <li><a href="https://doi.org/10.7937/tcia.2019.dc64i46r" rel="noopener noreferrer">C-NMC 2019, TCIA</a></li>
             <li><span>CC BY 3.0</span></li>
+            <li><a href="https://github.com/Shenggan/BCCD_Dataset" rel="noopener noreferrer">BCCD sample smears, MIT</a></li>
           </ul>
           <p className="fine">Code MIT. Weights CC BY 4.0. Credit appreciated.</p>
         </div>

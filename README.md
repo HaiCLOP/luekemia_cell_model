@@ -19,6 +19,12 @@ calibrated probabilities, and a referral band that hands uncertain cells to a pe
 Full tables, ablations and failure analysis: [MODEL_CARD.md](MODEL_CARD.md), `reports/`. The test split (26 subjects) is
 untouched and will be evaluated once at the end, together with the external ALL-IDB2 set.
 
+**Whole smears and another hospital.** A cell finder (`src/vision/segment.py`) now cuts every white cell out of a stained
+smear and puts it on C-NMC scale, using red cells as a ruler. It finds 99.7% of the 372 boxed white cells in BCCD. The
+single-cell model behind it does not transfer: on 3,216 Taleqani Hospital smears it separates ALL from benign hematogone
+smears with ROC-AUC 0.69 and calls two thirds of the benign smears leukemic. Details and the full comparison are in the
+smear section of the model card.
+
 ### Findings worth knowing
 
 - **Data audit.** The public C-NMC mirror contains 350 corrupt files and 110 duplicates, and 4 groups of patient IDs share
@@ -32,10 +38,13 @@ untouched and will be evaluated once at the end, together with the external ALL-
 ```
 configs/config.yaml        all settings; band and temperature written by src/triage.py
 src/                       download+audit, split, data, model, train, evaluate, calibrate, triage, explain, export, report
+src/vision/segment.py      smear -> white cells -> C-NMC-style crops (red cells as the ruler)
+src/smear_eval.py          cell finding on BCCD, end-to-end smear evaluation on an outside ALL dataset
+src/final_test.py          one-time sealed test / external evaluation
 api/                       FastAPI service (ONNX Runtime), Dockerfile for Hugging Face Spaces
 web/                       Next.js site (design notes in web/DESIGN_NOTES.md)
 supabase/migrations/       database schema
-monitor/                   local training dashboard
+monitor/                   local dashboard: training console, plus /jobs.html for any long job (src/progress.py)
 reports/                   tables, figures, per-run JSON, validation predictions
 tests/                     leakage, transforms, metrics, API contract
 scripts/run_all.ps1        reproduces every number and figure
@@ -61,7 +70,10 @@ copy .env.example .env    # fill SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY yourse
 cd web; npm install; npm run dev    # http://localhost:3000
 ```
 
-API: `GET /health`, `GET /models/active`, `POST /predict` (multipart `file`, optional `store_image`), `POST /feedback`.
+API: `GET /health`, `GET /models/active`, `POST /predict` (multipart `file`, optional `store_image`), `POST /feedback`,
+`POST /analyze-smear` (multipart `file`, optional `um_per_px`): finds every white cell in a smear, scores the lymphoid-like
+ones and returns an annotated image. Read the smear section of [MODEL_CARD.md](MODEL_CARD.md) before trusting it: the cell
+finder is reliable, the single-cell model does not transfer well to other microscopes.
 Images are never stored unless the user opts in (private bucket, deleted after 24 hours); predictions log only a SHA-256.
 
 ## Licence and credit

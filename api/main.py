@@ -28,7 +28,8 @@ from api.db import Database
 from api.inference import Model
 from api.quality import check as check_input
 from api.schemas import (DISCLAIMER, Band, FeedbackRequest, FeedbackResponse, HealthResponse, ModelCard,
-                         PredictResponse)
+                         PredictResponse, SmearResponse)
+from api.smear import analyse_smear
 
 def _load_dotenv() -> None:
     """Read KEY=VALUE lines from the repo-root .env (local dev only; real deployments set env vars)."""
@@ -163,6 +164,11 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
     # ONNX Runtime is blocking CPU work; keep it off the event loop. The semaphore bounds concurrent runs.
     async with _infer_slots:
         pred = await run_in_threadpool(state["model"].predict, img)
+    if pred.max_abs_logit > state["model"].ood_logit:
+        raise InputRejected("out_of_distribution",
+                            "The model's internal scores for this image are far outside anything it produced on its training "
+                            "data, so any answer would be meaningless. Usually the stain colours, magnification or image "
+                            "source differ from C-NMC.")
     sha = hashlib.sha256(data).hexdigest()
     db: Database = state["db"]
     prediction_id = db.log_prediction(sha, pred, session_id)
@@ -172,6 +178,37 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
                            prob_calibrated=round(pred.prob_calibrated, 4), decision=pred.decision,
                            band=Band(t_low=m.t_low, t_high=m.t_high), heatmap_png_base64=pred.heatmap_png_base64,
                            latency_ms=pred.latency_ms, image_stored=stored)
+
+
+SMEAR_MAX_BYTES = 10 * 1024 * 1024
+
+
+@app.post("/analyze-smear", response_model=SmearResponse)
+@limiter.limit(os.getenv("SMEAR_RATE_LIMIT", "10/minute"))
+async def analyze_smear(request: Request, file: UploadFile = File(...),
+                        um_per_px: float | None = Form(None, gt=0.01, lt=5.0),
+                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000)):
+    """Find white cells in a stained peripheral-blood smear image, score each lymphoid-like cell with the
+    single-cell model after putting it on C-NMC scale, and summarise. Nothing is stored."""
+    data = await file.read(SMEAR_MAX_BYTES + 1)
+    if len(data) > SMEAR_MAX_BYTES:
+        raise HTTPException(413, "Image is larger than 10 MB.")
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    try:
+        img = Image.open(io.BytesIO(data))
+        fmt = img.format
+        img.load()
+        img = ImageOps.exif_transpose(img)
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise HTTPException(415, "Unsupported or corrupt image. Use PNG, JPEG or BMP.")
+    if fmt not in ALLOWED_FORMATS:
+        raise HTTPException(415, f"Unsupported image type {fmt}. Use PNG, JPEG or BMP.")
+    if min(img.size) < 128:
+        raise InputRejected("insufficient_image_quality", "A smear image should be at least 128 x 128 px.")
+    async with _infer_slots:
+        out = await run_in_threadpool(analyse_smear, state["model"], img, um_per_px, rbc_diameter_px)
+    return out
 
 
 @app.post("/feedback", response_model=FeedbackResponse)

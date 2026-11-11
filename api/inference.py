@@ -34,11 +34,13 @@ class Prediction:
     member_probs: list[float]
     heatmap_png_base64: str | None
     latency_ms: int
+    max_abs_logit: float = 0.0
 
 
 class Model:
     def __init__(self, model_dir: str | Path):
         model_dir = Path(model_dir)
+        self.dir = model_dir
         self.meta = json.loads((model_dir / "model_meta.json").read_text())
         self._verify(model_dir)
         opts = ort.SessionOptions()
@@ -50,6 +52,8 @@ class Model:
         self.std = np.array(inp["std"], dtype=np.float32).reshape(3, 1, 1)
         self.temperature = float(self.meta["temperature"])
         self.t_low, self.t_high = float(self.meta["t_low"]), float(self.meta["t_high"])
+        # out-of-distribution guard: on familiar cells no member's |logit| exceeded ~15 (see model_meta.json)
+        self.ood_logit = float(self.meta.get("ood_max_abs_logit", 25.0))
 
     @staticmethod
     def _session(path: Path, opts):
@@ -84,7 +88,7 @@ class Model:
         return "refer_to_expert"
 
     def calibrate(self, member_logits: np.ndarray) -> tuple[float, float]:
-        p_members = 1.0 / (1.0 + np.exp(-member_logits))
+        p_members = 1.0 / (1.0 + np.exp(-np.clip(member_logits, -50.0, 50.0)))  # clip: no overflow warning, same result
         p_raw = float(np.clip(p_members.mean(), 1e-6, 1 - 1e-6))
         z = np.log(p_raw / (1 - p_raw))
         p_cal = float(1.0 / (1.0 + np.exp(-z / self.temperature)))
@@ -110,6 +114,7 @@ class Model:
         hm = self.heatmap(cam[0], rgb) if with_heatmap else None
         return Prediction(
             prob_raw=p_raw, prob_calibrated=p_cal, decision=self.decide(p_cal),
-            member_probs=[float(v) for v in 1.0 / (1.0 + np.exp(-logits[0]))],
+            member_probs=[float(v) for v in 1.0 / (1.0 + np.exp(-np.clip(logits[0], -50, 50)))],
+            max_abs_logit=float(np.abs(logits[0]).max()),
             heatmap_png_base64=hm, latency_ms=int(round((time.perf_counter() - t0) * 1000)),
         )
