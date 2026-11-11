@@ -67,7 +67,7 @@ h3 { font-size: 18px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em
 .slide-label .name b { font-family: var(--display); font-size: 21px; font-weight: 500; line-height: 1.1; letter-spacing: -0.01em; }
 .slide-label .name span { font: 11px var(--mono); color: var(--muted); letter-spacing: 0.06em; }
 .slide-label:hover { color: var(--ink); border-color: var(--eosin); }
-.nav-links { display: flex; gap: 26px; list-style: none; margin: 0; padding: 0; }
+.nav-links { display: flex; flex-wrap: wrap; gap: 8px 22px; list-style: none; margin: 0; padding: 0; min-width: 0; }
 .nav-links a { font: 500 14px var(--sans); color: var(--ink); text-decoration: none; display: inline-flex; gap: 6px; align-items: baseline; }
 .nav-links a .n { font: 11px var(--mono); color: var(--muted); }
 .nav-links a[aria-current="page"] { color: var(--eosin); }
@@ -228,3 +228,19 @@ tr.hl td, tr.hl th { background: #eceaf4; }
 .d-not_scored { background: #7d8b93; }
 .smear-caveat { margin-top: 28px; max-width: 820px; padding: 16px 20px; background: var(--ochre-soft); border-left: 4px solid var(--ochre); }
 .smear-caveat p { margin: 8px 0 0; color: var(--ink-2); }
+
+/* ---------- blood count page ---------- */
+.bc-group { border: 0; padding: 0; margin: 18px 0 0; }
+.bc-group legend { margin-bottom: 10px; }
+.bc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px 20px; }
+.bc-field { display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); min-width: 0; }
+.bc-input { display: flex; align-items: center; gap: 8px; }
+.bc-field select.num-input { width: 100%; }
+.bc-results { display: grid; gap: 16px; margin-top: 28px; }
+.bc-card { border-left: 4px solid var(--rule-strong); }
+.bc-card.v-meets { border-left-color: var(--eosin); }
+.bc-card.v-partly { border-left-color: var(--ochre); }
+.bc-card.v-not_suggested { border-left-color: var(--sage); }
+.bc-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bc-card-head h3 { margin: 0; font-size: 18px; }
+.bc-headline { font-weight: 600; margin: 10px 0 6px; }

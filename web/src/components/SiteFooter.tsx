@@ -19,6 +19,7 @@ export function SiteFooter() {
           <ul>
             <li><Link href="/">Analyse a cell</Link></li>
             <li><Link href="/smear">Analyse a smear</Link></li>
+            <li><Link href="/blood-count">Check a blood count (CLL, CML)</Link></li>
             <li><Link href="/model-card">Model card</Link></li>
             <li><Link href="/method">Method</Link></li>
             <li><a href={REPO} rel="noopener noreferrer">Source code</a></li>

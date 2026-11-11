@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "Cell", n: "01" },
   { href: "/smear", label: "Smear", n: "02" },
-  { href: "/model-card", label: "Model card", n: "03" },
-  { href: "/method", label: "Method", n: "04" },
+  { href: "/blood-count", label: "Blood count", n: "03" },
+  { href: "/model-card", label: "Model card", n: "04" },
+  { href: "/method", label: "Method", n: "05" },
 ];
 
 export function SiteHeader() {

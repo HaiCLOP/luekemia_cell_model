@@ -40,6 +40,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Type check and banned-pattern check
         run: npm run lint
+      - name: Blood-count criteria tests
+        run: npm test
       - name: Build
         run: npm run build
         env:

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit && node scripts/check-copy.mjs",
     "postinstall": "node scripts/copy-ort.mjs",
-    "prebuild": "node scripts/copy-ort.mjs"
+    "prebuild": "node scripts/copy-ort.mjs",
+    "test": "node --experimental-strip-types scripts/test-blood.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
