@@ -18,9 +18,11 @@ metrics:
   - expected_calibration_error
 ---
 
-# effb0-ens5-v1: ALL vs normal single-cell classifier with a refer-to-expert band
+# MH51401122: ALL vs normal single-cell classifier with a refer-to-expert band
 
-**Research demo. Not for clinical use.** This model has not been clinically validated and must not be used to make or
+**Research demo. Not for clinical use.**
+
+Model ID **MH51401122** (formerly `effb0-ens5-v1`; renamed only, the file and its sha256 `bad021f6…` are unchanged). This model has not been clinically validated and must not be used to make or
 support diagnostic or treatment decisions.
 
 ## Summary
@@ -64,7 +66,7 @@ stopping on validation PR-AUC. Seeds 42 to 46.
 ## Final test (26 held-out subjects, evaluated once)
 
 Run once on 2026-11-11 with `python -m src.final_test --split test --confirm-final`, after every modelling
-choice was frozen: model `effb0-ens5-v1` (ONNX sha256 `bad021f68226`), temperature and band unchanged,
+choice was frozen: model MH51401122 (then named `effb0-ens5-v1`; same file, ONNX sha256 `bad021f68226`), temperature and band unchanged,
 source commit `8d1d789`. These subjects were never used for training, checkpoint choice, calibration or
 the band. 2,414 cells, all passed the input checks. 95% intervals resample whole subjects.
 

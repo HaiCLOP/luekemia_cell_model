@@ -1,6 +1,6 @@
 {
   "model": {
-    "name": "effb0-ens5-v1",
+    "name": "MH51401122",
     "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
     "temperature": 1.0728,
     "t_low": 0.2,

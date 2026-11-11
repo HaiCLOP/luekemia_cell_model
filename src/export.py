@@ -1,6 +1,6 @@
 """Export the deployed model (5-seed EfficientNet-B0 ensemble) to ONNX for CPU inference.
 
-Usage: python -m src.export [--name effb0-ens5-v1]
+Usage: python -m src.export [--name MH51401122]
 
 Graph inputs:  image  float32 [B, 3, 224, 224]  (ImageNet-normalised, same as training eval transform)
 Graph outputs: logits float32 [B, 5]             (one raw logit per ensemble member)
@@ -52,7 +52,7 @@ def sha256(path) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--name", default="effb0-ens5-v1")
+    ap.add_argument("--name", default="MH51401122")
     ap.add_argument("--prefix", default="effb0_main", help="run-name prefix of the five seed checkpoints")
     ap.add_argument("--out", default="models", help="output folder (a second model goes in its own folder)")
     args = ap.parse_args()

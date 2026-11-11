@@ -16,10 +16,15 @@ short_description: ALL vs normal cell classifier with refer-to-expert band
 
 FastAPI service for a 5-seed EfficientNet-B0 ensemble (ONNX, CPU) that classifies a single segmented white blood cell
 image as leukemic (ALL), normal, or refer to expert, with a calibrated probability and a class activation map.
+On 26 held-out subjects, evaluated once: PR-AUC 0.932, and the refer-to-expert band missed 2.8% of leukemic cells.
+Images that are not a single cropped cell, or that push the network far outside its normal range, get no score.
 
 - `GET /health`
 - `GET /models/active`
 - `POST /predict` (multipart `file`: PNG, JPEG or BMP up to 5 MB; optional `store_image`)
+- `POST /analyze-smear` (multipart `file`: a stained blood-smear field up to 10 MB; optional `um_per_px`): finds every
+  white cell, skips non-lymphocytes, scores the rest and returns an annotated image. Experimental: the model does not
+  transfer well to other labs' smears (see the model card)
 - `POST /feedback` (`prediction_id`, `user_label`, optional `comment`)
 - Interactive docs at `/docs`
 

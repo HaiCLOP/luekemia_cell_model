@@ -4,9 +4,12 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 $dst = "dist\space"
 if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
-New-Item -ItemType Directory -Force "$dst\api", "$dst\models" | Out-Null
+New-Item -ItemType Directory -Force "$dst\api", "$dst\models", "$dst\src\vision" | Out-Null
 Copy-Item api\*.py, api\requirements.txt "$dst\api\"
-Copy-Item models\model_meta.json, models\effb0-ens5-v1.onnx "$dst\models\"
+# the smear cell finder used by /analyze-smear
+Copy-Item src\vision\__init__.py, src\vision\segment.py "$dst\src\vision\"
+# deployed model, C-NMC colour statistics for smear crops, and the cell-type filter
+Copy-Item models\model_meta.json, models\MH51401122.onnx, models\cnmc_stain.json, models\cell_type_filter.onnx, models\cell_type_meta.json "$dst\models\"
 Copy-Item api\Dockerfile "$dst\Dockerfile"
 Copy-Item deploy\space_README.md "$dst\README.md"
 # Space builds from its root; .env is never copied.
