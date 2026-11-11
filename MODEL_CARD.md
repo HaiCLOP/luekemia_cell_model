@@ -248,6 +248,33 @@ is not blur or colour but biology and source: Taleqani's benign smears are full 
 and its cells come from a different camera at about a ninth of C-NMC's resolution. The next step that could actually
 help is training data from more than one lab, with patient-level splits, rather than more augmentation of one lab.
 
+## Experiment: ALL vs AML vs normal (not deployed)
+
+`src/vision/multiclass.py`. Three classes from two public datasets: C-NMC (normal cells and B-ALL blasts) and the Munich
+AML Cytomorphology set (Matek et al. 2019, TCIA, CC BY 3.0: 3,294 myeloblasts and monoblasts, 3,937 typical lymphocytes).
+Munich photos were cut out with the smear cell finder and scaled so their median normal lymphocyte matches C-NMC's (the
+red-cell ruler was unreliable on those 400 px fields); every cell was colour-normalised to C-NMC. One EfficientNet-B0,
+15 rounds on the GTX 1650, best validation macro F1 0.878.
+
+| Held-out test (3,501 cells) | Precision | Recall | F1 |
+|---|---|---|---|
+| Normal lymphocyte | 0.958 | 0.573 | 0.717 |
+| ALL blast | 0.750 | 0.978 | 0.849 |
+| AML blast | 0.873 | 1.000 | 0.932 |
+| Macro F1 | | | 0.833 |
+
+**It learned the lab, not the leukemia.** ALL cells came only from C-NMC and AML cells only from Munich, and the checks
+show the model used that:
+
+- normal lymphocytes' errors never cross labs: C-NMC normals were called ALL 65% of the time (AML 0.2%), Munich normals
+  were called AML 12% of the time (ALL 0%);
+- on a third lab, Taleqani's B-ALL smears, **0% of 2,815 cells were called ALL** and 61% were called AML;
+- healthy BCCD lymphocytes were called AML 87% of the time;
+- the perfect AML recall is partly Munich's random split by image (no patient IDs are published).
+
+So the model is not used anywhere. Telling ALL from AML needs data where both come from the same lab, ideally several
+labs, with patient-level splits (see `docs/data_request_guide.md`).
+
 ## Limitations
 
 - One dataset, one acquisition setup; ALL-IDB2 access was never granted. The outside smear tests above (Taleqani, BCCD)

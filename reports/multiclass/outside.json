@@ -1,0 +1,21 @@
+{
+  "taleqani_ALL_smears": {
+    "cells": 2815,
+    "called_normal": 0.3868561278863233,
+    "called_ALL": 0.00035523978685612787,
+    "called_AML": 0.6127886323268206
+  },
+  "taleqani_benign_smears": {
+    "cells": 175,
+    "called_normal": 0.6285714285714286,
+    "called_ALL": 0.0,
+    "called_AML": 0.37142857142857144
+  },
+  "bccd_healthy": {
+    "cells": 23,
+    "called_normal": 0.13043478260869565,
+    "called_ALL": 0.0,
+    "called_AML": 0.8695652173913043
+  },
+  "note": "Cells pass the same steps as the smear page: lymphoid shape rule, cell-type filter, red-cell ruler and colour normalisation. Taleqani has B-ALL only, so AML calls there are errors."
+}

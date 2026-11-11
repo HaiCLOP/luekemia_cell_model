@@ -31,6 +31,11 @@ retrain with heavy blur, resolution and colour augmentation (5 seeds, Kaggle T4)
 0.974) and did worse outside it (0.48 vs 0.57), so the original model stays deployed. Details and the full comparison
 are in the smear section of the model card.
 
+**ALL vs AML (experiment).** A three-class model trained on C-NMC plus the Munich AML dataset scored macro F1 0.83 on
+held-out cells, but it learned which lab an image came from: real B-ALL cells from a third lab were never called ALL
+(0 of 2,815) and 61% were called AML. It is not deployed; ALL vs AML needs both diseases from the same labs. CLL and CML
+are handled differently, by checking lab values against published criteria on the Blood count page.
+
 ### Findings worth knowing
 
 - **Data audit.** The public C-NMC mirror contains 350 corrupt files and 110 duplicates, and 4 groups of patient IDs share

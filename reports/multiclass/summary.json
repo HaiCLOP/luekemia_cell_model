@@ -1,0 +1,70 @@
+{
+  "test_cells": 3501,
+  "per_class": {
+    "normal lymphocyte": {
+      "n": 1397,
+      "precision": 0.9581339712918661,
+      "recall": 0.5733715103793844,
+      "f1": 0.7174205105239588,
+      "roc_auc_one_vs_rest": 0.917060526222677
+    },
+    "ALL blast": {
+      "n": 1609,
+      "precision": 0.7502383222116301,
+      "recall": 0.978247358607831,
+      "f1": 0.8492042082546534,
+      "roc_auc_one_vs_rest": 0.9321213785564025
+    },
+    "AML blast": {
+      "n": 495,
+      "precision": 0.873015873015873,
+      "recall": 1.0,
+      "f1": 0.9322033898305084,
+      "roc_auc_one_vs_rest": 0.9992432643131245
+    }
+  },
+  "macro_f1": 0.8329427028697068,
+  "accuracy": 0.8197657812053699,
+  "confusion_matrix": {
+    "rows_true_cols_pred": [
+      "normal lymphocyte",
+      "ALL blast",
+      "AML blast"
+    ],
+    "matrix": [
+      [
+        801,
+        524,
+        72
+      ],
+      [
+        35,
+        1574,
+        0
+      ],
+      [
+        0,
+        0,
+        495
+      ]
+    ]
+  },
+  "normal_lymphocytes_by_lab": {
+    "cnmc": {
+      "n": 805,
+      "called_normal": 0.34658385093167704,
+      "called_ALL": 0.6509316770186335,
+      "called_AML": 0.002484472049689441
+    },
+    "munich": {
+      "n": 592,
+      "called_normal": 0.8817567567567568,
+      "called_ALL": 0.0,
+      "called_AML": 0.11824324324324324
+    }
+  },
+  "notes": [
+    "C-NMC test cells come from 26 held-out subjects; Munich test cells are a random 15% of images (no patient IDs published), so Munich numbers are optimistic.",
+    "ALL cells come only from C-NMC and AML cells only from Munich: good scores can partly reflect the lab. The normal-lymphocytes-by-lab block and the outside checks are what speak to that."
+  ]
+}
