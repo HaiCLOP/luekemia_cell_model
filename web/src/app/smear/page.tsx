@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SmearAnalyser } from "@/components/SmearAnalyser";
+import { RUN_IN_BROWSER } from "@/lib/api";
 
 export const metadata: Metadata = { title: "Smear" };
 
@@ -31,9 +32,21 @@ export default function SmearPage() {
           this page exists to show. Full figures are in the smear section of the model card.
         </p>
       </aside>
-      <div style={{ marginTop: 28 }}>
-        <SmearAnalyser />
-      </div>
+      {RUN_IN_BROWSER ? (
+        <section className="note" style={{ marginTop: 28 }} aria-labelledby="local-title">
+          <h2 id="local-title" style={{ fontSize: 18, margin: 0 }}>Smear analysis runs locally for now</h2>
+          <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
+            On this free, serverless version of the site the single-cell model runs in your browser, but the smear cell finder
+            is still Python. To try it, run the API from the{" "}
+            <a href="https://github.com/HaiCLOP/luekemia_cell_model#run-the-app-locally" rel="noopener noreferrer">GitHub repository</a>{" "}
+            and open this page locally.
+          </p>
+        </section>
+      ) : (
+        <div style={{ marginTop: 28 }}>
+          <SmearAnalyser />
+        </div>
+      )}
     </div>
   );
 }

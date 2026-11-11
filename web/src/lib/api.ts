@@ -1,4 +1,6 @@
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+/** Without an API address (the free static deployment) the model runs in the visitor's browser. */
+export const RUN_IN_BROWSER = !API_URL || process.env.NEXT_PUBLIC_INFERENCE === "browser";
 export const MAX_BYTES = 5 * 1024 * 1024;
 export const ACCEPTED = ["image/png", "image/jpeg", "image/bmp", "image/x-ms-bmp"];
 

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
-import { ACCEPTED, MAX_BYTES, RESULT_KEY, predict, previewDataUrl, type StoredResult } from "@/lib/api";
+import { ACCEPTED, MAX_BYTES, RESULT_KEY, RUN_IN_BROWSER, predict, previewDataUrl, type StoredResult } from "@/lib/api";
+import { MODEL_MB } from "@/lib/browserModel";
 
 const SAMPLES = [
   { file: "/samples/sample-leukemic.png", label: "Leukemic cell" },
@@ -20,6 +21,7 @@ export function Uploader() {
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [download, setDownload] = useState<number | null>(null);
 
   async function choose(f: File | undefined | null) {
     setError(null);
@@ -40,13 +42,17 @@ export function Uploader() {
     setBusy(true);
     setError(null);
     try {
-      const [response, dataUrl] = await Promise.all([predict(f, store), previewForFile]);
+      const infer = RUN_IN_BROWSER
+        ? import("@/lib/browserModel").then((m) => m.predictInBrowser(f, (x) => setDownload(x < 1 ? x : null)))
+        : predict(f, store);
+      const [response, dataUrl] = await Promise.all([infer, previewForFile]);
       const stored: StoredResult = { response, previewDataUrl: dataUrl, fileName: f.name, createdAt: new Date().toISOString() };
       sessionStorage.setItem(RESULT_KEY, JSON.stringify(stored));
       router.push("/result");
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      setDownload(null);
     }
   }
 
@@ -105,10 +111,17 @@ export function Uploader() {
         </div>
       )}
 
-      <label className="check">
-        <input type="checkbox" checked={store} onChange={(e) => setStore(e.target.checked)} />
-        <span>Keep my image for 24 hours to help improve the model. Off by default: otherwise only a fingerprint (SHA-256) of the file is recorded.</span>
-      </label>
+      {RUN_IN_BROWSER ? (
+        <p className="small" style={{ marginTop: 14 }}>
+          The model runs inside your browser: your image never leaves this device. The first analysis downloads the model
+          (about {MODEL_MB} MB, once); after that it is cached.
+        </p>
+      ) : (
+        <label className="check">
+          <input type="checkbox" checked={store} onChange={(e) => setStore(e.target.checked)} />
+          <span>Keep my image for 24 hours to help improve the model. Off by default: otherwise only a fingerprint (SHA-256) of the file is recorded.</span>
+        </label>
+      )}
 
       <div className="actions">
         <button type="button" className="btn btn-primary" disabled={!file || busy} onClick={() => file && preview && run(file, preview)}>
@@ -119,7 +132,11 @@ export function Uploader() {
             Clear
           </button>
         )}
-        <span role="status" aria-live="polite" className="small">{busy ? "Running the five-model ensemble, usually under a second." : ""}</span>
+        <span role="status" aria-live="polite" className="small">
+          {!busy ? "" : download != null
+            ? `Downloading the model, ${Math.round(100 * download)}% (about ${MODEL_MB} MB, only the first time)`
+            : RUN_IN_BROWSER ? "Running the five-model ensemble in your browser, a few seconds." : "Running the five-model ensemble, usually under a second."}
+        </span>
       </div>
 
       {error && <p className="error" role="alert">{error}</p>}

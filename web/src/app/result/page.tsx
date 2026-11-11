@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import results from "@/data/results.json";
-import { RESULT_KEY, sendFeedback, type StoredResult } from "@/lib/api";
+import { RESULT_KEY, RUN_IN_BROWSER, sendFeedback, type StoredResult } from "@/lib/api";
 
 const pct = (v: number) => `${(100 * v).toFixed(1)}%`;
 const BAND = results.band;
@@ -127,7 +127,7 @@ export default function ResultPage() {
           <div><dt>Raw ensemble score</dt><dd>{r.prob_raw.toFixed(3)}</dd></div>
           <div><dt>Model</dt><dd>{r.model_version}</dd></div>
           <div><dt>Analysis time</dt><dd>{r.latency_ms} ms</dd></div>
-          <div><dt>Image kept</dt><dd>{r.image_stored ? "24 h" : "no, hash only"}</dd></div>
+          <div><dt>Image kept</dt><dd>{RUN_IN_BROWSER ? "never left your browser" : r.image_stored ? "24 h" : "no, hash only"}</dd></div>
         </dl>
 
         <div className="pair">
@@ -157,27 +157,37 @@ export default function ResultPage() {
         </p>
       </section>
 
-      <form className="note feedback" onSubmit={submit} aria-labelledby="fb-title">
-        <h2 id="fb-title" style={{ fontSize: 18, margin: 0 }}>Did it get this one right?</h2>
-        <fieldset disabled={state === "sending" || state === "sent"}>
-          <legend className="small" style={{ marginTop: 6 }}>If you know the true label, tell us. It is saved with this prediction only.</legend>
-          <div className="choice">
-            {(["leukemic", "normal", "unsure"] as const).map((v) => (
-              <label key={v}>
-                <input type="radio" name="label" value={v} checked={label === v} onChange={() => setLabel(v)} />
-                {v === "unsure" ? "Not sure" : v === "leukemic" ? "It is leukemic" : "It is normal"}
-              </label>
-            ))}
-          </div>
-          <label htmlFor="fb-comment" className="visually-hidden">Optional comment</label>
-          <textarea id="fb-comment" maxLength={500} placeholder="Optional note, up to 500 characters" value={comment} onChange={(e) => setComment(e.target.value)} />
-          <div className="actions">
-            <button type="submit" className="btn btn-primary" disabled={!label}>{state === "sending" ? "Saving..." : "Send feedback"}</button>
-            <span className="small">{comment.length}/500</span>
-          </div>
-        </fieldset>
-        {msg && <p role="status" className={state === "error" ? "error" : "small"} style={{ marginBottom: 0 }}>{msg}</p>}
-      </form>
+      {RUN_IN_BROWSER ? (
+        <section className="note" aria-labelledby="fb-title">
+          <h2 id="fb-title" style={{ fontSize: 18, margin: 0 }}>Nothing was sent anywhere</h2>
+          <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
+            This analysis ran entirely in your browser, so there is no server copy of your image or result. Feedback and the
+            optional image store are available when the site runs with its API (see the GitHub README).
+          </p>
+        </section>
+      ) : (
+        <form className="note feedback" onSubmit={submit} aria-labelledby="fb-title">
+          <h2 id="fb-title" style={{ fontSize: 18, margin: 0 }}>Did it get this one right?</h2>
+          <fieldset disabled={state === "sending" || state === "sent"}>
+            <legend className="small" style={{ marginTop: 6 }}>If you know the true label, tell us. It is saved with this prediction only.</legend>
+            <div className="choice">
+              {(["leukemic", "normal", "unsure"] as const).map((v) => (
+                <label key={v}>
+                  <input type="radio" name="label" value={v} checked={label === v} onChange={() => setLabel(v)} />
+                  {v === "unsure" ? "Not sure" : v === "leukemic" ? "It is leukemic" : "It is normal"}
+                </label>
+              ))}
+            </div>
+            <label htmlFor="fb-comment" className="visually-hidden">Optional comment</label>
+            <textarea id="fb-comment" maxLength={500} placeholder="Optional note, up to 500 characters" value={comment} onChange={(e) => setComment(e.target.value)} />
+            <div className="actions">
+              <button type="submit" className="btn btn-primary" disabled={!label}>{state === "sending" ? "Saving..." : "Send feedback"}</button>
+              <span className="small">{comment.length}/500</span>
+            </div>
+          </fieldset>
+          {msg && <p role="status" className={state === "error" ? "error" : "small"} style={{ marginBottom: 0 }}>{msg}</p>}
+        </form>
+      )}
     </div>
   );
 }

@@ -1,0 +1,73 @@
+{
+  "name": "MH51401122",
+  "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "input": {
+    "size": 224,
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "resize": "bilinear, antialiased"
+  },
+  "temperature": 1.0728,
+  "t_low": 0.2,
+  "t_high": 0.5,
+  "band_target": "leukemic miss rate <= 2% on validation subjects",
+  "metrics": {
+    "split": "validation (18 subjects); test results under metrics.test",
+    "pr_auc": 0.9737394217322837,
+    "roc_auc": 0.952181696374639,
+    "ece_calibrated": 0.0231927498937986,
+    "band_crossfit": {
+      "referral_rate": 0.08066298342541436,
+      "miss_rate": 0.02736318407960199,
+      "false_alarm_rate": 0.1837748344370861,
+      "auto_accuracy": 0.9134615384615384,
+      "target_miss_rate": 0.02,
+      "n_referred": 146,
+      "misses_avoided_per_100_referred": 39.72602739726028
+    },
+    "band_crossfit_method": "nested: temperature and band both fitted on 2/3 of validation subjects, scored on the other 1/3, same folds",
+    "ece_raw": 0.021033921719418727,
+    "test": {
+      "subjects": 26,
+      "cells": 2414,
+      "evaluated": "2026-11-11",
+      "pr_auc": 0.9321554503705425,
+      "pr_auc_ci95": [
+        0.8197762381684959,
+        0.9734228566038745
+      ],
+      "roc_auc": 0.8898223888144714,
+      "ece_calibrated": 0.03175393090569199,
+      "band": {
+        "referral_rate": 0.12344656172328086,
+        "miss_rate": 0.027967681789931635,
+        "false_alarm_rate": 0.28819875776397513
+      }
+    }
+  },
+  "git_sha": null,
+  "config_hash": "a3ee6923173a",
+  "onnx_file": "MH51401122.onnx",
+  "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
+  "exported": "2026-11-09T18:18:20.894193+00:00",
+  "disclaimer": "Research demo. Not for clinical use.",
+  "source_note": "Exported before the repository had commits. The export code is in commit 956490a; the ONNX file is identified by onnx_sha256.",
+  "ood_max_abs_logit": 25.0,
+  "ood_note": "A cell is refused as out of distribution if any ensemble member's |logit| exceeds this. On the 1,810 C-NMC validation cells the largest was 14.9 (99th percentile 12.3); smear crops in raw colours reached 12,000+.",
+  "former_name": "effb0-ens5-v1"
+}

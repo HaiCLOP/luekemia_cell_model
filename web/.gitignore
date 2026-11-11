@@ -1,0 +1,6 @@
+
+# copied from node_modules at install time
+public/ort/
+
+.vercel
+.env*
