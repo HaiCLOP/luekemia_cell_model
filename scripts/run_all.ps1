@@ -45,9 +45,15 @@ Step "Comparison table with subject CIs" @("-m", "src.report")
 Step "Calibration and referral band"   @("-m", "src.triage", "--mc")
 Step "Explainability"                  @("-m", "src.explain", "--n", "200")
 Step "Size reliance"                     @("-m", "src.size_check", "effb0_main_s42", "effb0_main_s43", "effb0_main_s44", "effb0_main_s45", "effb0_main_s46", "mnv3_s42", "dinov2s_s42", "baseline_b_smallcnn", "abl_aug_none_s42", "abl_aug_hed_s42", "abl_scalejit_s42")
+Step "Size-matched evaluation"          @("-m", "src.size_matched")
 
 # Deployable model and website data
 Step "Export ONNX ensemble" @("-m", "src.export")
 Step "Export website data"  @("scripts\export_web_data.py")
 
 Write-Host "`nAll validation results regenerated in reports\." -ForegroundColor Green
+
+# The held-out test split and ALL-IDB2 are deliberately NOT part of this script. They are evaluated once,
+# by hand, after every choice above is frozen:
+#   python -m src.final_test --split test --confirm-final
+#   python -m src.final_test --external <ALL_IDB2 image folder> --confirm-final

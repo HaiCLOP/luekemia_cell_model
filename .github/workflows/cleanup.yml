@@ -1,0 +1,29 @@
+name: retention-cleanup
+
+# Deletes opt-in uploads older than 24 hours. Needs repository secrets SUPABASE_URL and
+# SUPABASE_SERVICE_ROLE_KEY. A failed run shows up as a failed workflow (GitHub emails the repo owner).
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install supabase==2.34.1
+      - name: Remove expired uploads
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then echo "SUPABASE secrets not set; nothing to clean"; exit 0; fi
+          python -m api.cleanup

@@ -6,15 +6,15 @@ A single-cell classifier for B-lineage acute lymphoblastic leukemia (ALL) vs nor
 evaluation rather than headline accuracy: patient-level splits with a data audit, subject-clustered confidence intervals,
 calibrated probabilities, and a referral band that hands uncertain cells to a person.
 
-## Results (validation, 18 held-out subjects)
+## Results (validation, 18 subjects not used for training)
 
 | | |
 |---|---|
 | Deployed model | 5-seed EfficientNet-B0 ensemble, ONNX on CPU, about 45 ms per cell |
 | PR-AUC | **0.974** (95% subject CI 0.906 to 0.994) |
-| Calibration (ECE) | 0.021 |
-| Missed leukemic cells | 7.55% with a 0.5 threshold, **2.90% with the referral band** while referring 8.0% of cells |
-| Referral efficiency | 38.6 misses avoided per 100 referred cells vs 5.0 for random referral |
+| Calibration (ECE, 15 bins) | 0.023 deployed (temperature scaled), 0.021 before scaling |
+| Missed leukemic cells | 7.55% with a 0.5 threshold, **2.74% with the referral band** while referring 8.1% of cells (nested cross-fit; the 2% target is met in-sample only) |
+| Referral efficiency | 39.7 misses avoided per 100 referred cells vs 5.0 for random referral |
 
 Full tables, ablations and failure analysis: [MODEL_CARD.md](MODEL_CARD.md), `reports/`. The test split (26 subjects) is
 untouched and will be evaluated once at the end, together with the external ALL-IDB2 set.

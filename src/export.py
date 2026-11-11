@@ -90,6 +90,9 @@ def main() -> None:
             "band_crossfit": triage["band_crossfit"],
         },
         "git_sha": git_sha(), "config_hash": config_hash(cfg),
+        "manifest_sha256": sha256(resolve("data/splits.csv")),
+        "checkpoint_sha256": {s: sha256(resolve(cfg["paths"]["checkpoints"]) / f"effb0_main_s{s}.pt") for s in seeds},
+        "versions": {"torch": torch.__version__, "onnx_opset": 17},
         "onnx_file": onnx_path.name, "onnx_sha256": sha256(onnx_path),
         "exported": datetime.now(timezone.utc).isoformat(),
         "disclaimer": cfg["disclaimer"],
@@ -110,13 +113,33 @@ def main() -> None:
     with torch.no_grad():
         tl, tc = model(x)
     ol, oc = sess.run(None, {"image": x.numpy()})
-    tp, op = torch.sigmoid(tl).mean(1).numpy(), (1 / (1 + np.exp(-ol))).mean(1)
-    print(f"exported {onnx_path} ({onnx_path.stat().st_size / 2**20:.1f} MB)")
-    print(f"parity on 32 val cells: max |ensemble prob diff| {np.abs(op - tp).max():.2e}, "
-          f"max |logit diff| {np.abs(ol - tl.numpy()).max():.2e} (logit scale {np.abs(tl.numpy()).max():.1f}), "
-          f"max |cam diff| / cam max {np.abs(oc - tc.numpy()).max() / np.abs(tc.numpy()).max():.2e}")
-    assert np.abs(op - tp).max() < 1e-3, "ONNX and PyTorch disagree on real inputs"
+    tl, tc, ol, oc = tl.numpy(), tc.numpy(), np.asarray(ol), np.asarray(oc)
+    T, lo, hi = cfg["band"]["temperature"], cfg["band"]["t_low"], cfg["band"]["t_high"]
 
+    def downstream(logits):
+        p = np.clip((1 / (1 + np.exp(-logits))).mean(1), 1e-6, 1 - 1e-6)
+        pc = 1 / (1 + np.exp(-np.log(p / (1 - p)) / T))
+        return p, pc, np.where(pc < lo, 0, np.where(pc > hi, 1, -1))
+
+    tp, tpc, td = downstream(tl)
+    op, opc, od = downstream(ol)
+    parity = {
+        "n_cells": len(val),
+        "max_member_logit_diff": float(np.abs(ol - tl).max()),
+        "max_ensemble_prob_diff": float(np.abs(op - tp).max()),
+        "max_calibrated_prob_diff": float(np.abs(opc - tpc).max()),
+        "decisions_equal": bool((od == td).all()),
+        "max_cam_rel_diff": float(np.abs(oc - tc).max() / max(np.abs(tc).max(), 1e-8)),
+        "onnx_sha256": meta["onnx_sha256"],
+    }
+    print(f"exported {onnx_path} ({onnx_path.stat().st_size / 2**20:.1f} MB)")
+    print("parity on real validation cells:", json.dumps(parity, indent=2))
+    (out_dir / f"{args.name}.parity.json").write_text(json.dumps(parity, indent=2))
+    assert parity["max_member_logit_diff"] < 1e-2, "member logits differ"
+    assert parity["max_ensemble_prob_diff"] < 1e-3, "ensemble probability differs"
+    assert parity["max_calibrated_prob_diff"] < 1e-3, "calibrated probability differs"
+    assert parity["decisions_equal"], "a triage decision differs between PyTorch and ONNX"
+    assert parity["max_cam_rel_diff"] < 1e-2, "CAM differs by more than 1% of its range"
 
 if __name__ == "__main__":
     main()

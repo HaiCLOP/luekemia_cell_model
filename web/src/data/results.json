@@ -38,16 +38,39 @@
     "pr_auc": 0.9737394217322837,
     "roc_auc": 0.952181696374639,
     "pr_auc_ci": [
-      0.906,
-      0.994
+      0.9059810040777921,
+      0.9937647269476605
     ],
-    "ece": 0.021033921719418727,
-    "ece_ci": [
+    "ece_raw": 0.021033921719418727,
+    "ece_raw_ci": [
       0.018970018141262018,
       0.10413403458002596
-    ]
+    ],
+    "ece_calibrated": 0.0231927498937986,
+    "ece_calibrated_ci": [
+      0.02249256262935729,
+      0.10691286460237898
+    ],
+    "ece_bins": 15
   },
   "models": [
+    {
+      "name": "Deployed: 5-seed EfficientNet-B0 ensemble",
+      "deployed": true,
+      "pr_auc": 0.9737394217322837,
+      "pr_auc_ci": [
+        0.9059810040777921,
+        0.9937647269476605
+      ],
+      "roc_auc": 0.952181696374639,
+      "roc_auc_ci": [
+        0.8561976052986247,
+        0.9782078837557844
+      ],
+      "recall": 0.9245439469320066,
+      "specificity": 0.8178807947019867,
+      "ece": 0.021033921090940728
+    },
     {
       "name": "EfficientNet-B0 (seed 42)",
       "pr_auc": 0.9709973124826937,
@@ -62,7 +85,8 @@
       ],
       "recall": 0.9112769485903814,
       "specificity": 0.8493377483443708,
-      "ece": 0.04250363561281742
+      "ece": 0.04250363561281742,
+      "deployed": false
     },
     {
       "name": "MobileNetV3-Large",
@@ -78,7 +102,8 @@
       ],
       "recall": 0.8839137645107794,
       "specificity": 0.859271523178808,
-      "ece": 0.06457538268780888
+      "ece": 0.06457538268780888,
+      "deployed": false
     },
     {
       "name": "DINOv2 ViT-S/14",
@@ -94,7 +119,8 @@
       ],
       "recall": 0.8731343283582089,
       "specificity": 0.8493377483443708,
-      "ece": 0.08007537661289625
+      "ece": 0.08007537661289625,
+      "deployed": false
     },
     {
       "name": "Small CNN from scratch",
@@ -110,7 +136,8 @@
       ],
       "recall": 0.9361525704809287,
       "specificity": 0.7218543046357616,
-      "ece": 0.026296826170951616
+      "ece": 0.026296826170951616,
+      "deployed": false
     },
     {
       "name": "Frozen features + logistic regression",
@@ -126,7 +153,8 @@
       ],
       "recall": 0.8565505804311775,
       "specificity": 0.6837748344370861,
-      "ece": 0.06927699456396487
+      "ece": 0.06927699456396487,
+      "deployed": false
     }
   ],
   "calibration": [
@@ -164,19 +192,19 @@
       "false_alarm_rate": 0.34271523178807944
     },
     "random": {
-      "referral_rate": 0.08011049723756906,
-      "miss_rate": 0.06945356550580431,
-      "miss_rate_sd": 0.0021475599797312894,
-      "misses_avoided_per_100_referred": 4.992413793103453
+      "referral_rate": 0.08066298342541436,
+      "miss_rate": 0.06940547263681592,
+      "miss_rate_sd": 0.002142577713434024,
+      "misses_avoided_per_100_referred": 4.99794520547946
     },
     "band": {
-      "referral_rate": 0.08011049723756906,
-      "miss_rate": 0.02902155887230514,
-      "false_alarm_rate": 0.1870860927152318,
-      "auto_accuracy": 0.9111111111111111,
+      "referral_rate": 0.08066298342541436,
+      "miss_rate": 0.02736318407960199,
+      "false_alarm_rate": 0.1837748344370861,
+      "auto_accuracy": 0.9134615384615384,
       "target_miss_rate": 0.02,
-      "n_referred": 145,
-      "misses_avoided_per_100_referred": 38.62068965517242
+      "n_referred": 146,
+      "misses_avoided_per_100_referred": 39.72602739726028
     }
   },
   "explain": {

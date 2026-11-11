@@ -1,0 +1,17 @@
+# Research / training environment, pinned to the versions the published results were produced with.
+# PyTorch comes from its own index:
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121   (GPU)
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu     (CPU, CI)
+timm==1.0.31
+scikit-learn==1.9.1
+pandas==3.1.1
+PyYAML==6.0.3
+numpy==2.4.6
+pillow==13.0.0
+matplotlib==3.11.2
+onnx==1.23.2
+onnxruntime==1.31.1
+captum==0.9.0
+datasets==5.1.0
+huggingface_hub==2.4.0
+tqdm==4.70.1

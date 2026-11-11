@@ -6,6 +6,7 @@ Env: MODEL_DIR (default ./models), ALLOWED_ORIGIN (comma-separated), SUPABASE_UR
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import io
 import logging
@@ -14,16 +15,18 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from api.db import Database
 from api.inference import Model
+from api.quality import check as check_input
 from api.schemas import (DISCLAIMER, Band, FeedbackRequest, FeedbackResponse, HealthResponse, ModelCard,
                          PredictResponse)
 
@@ -49,13 +52,16 @@ ALLOWED_FORMATS = {"PNG", "JPEG", "BMP"}
 Image.MAX_IMAGE_PIXELS = 40_000_000  # refuse decompression bombs
 MODEL_DIR = Path(os.getenv("MODEL_DIR", Path(__file__).resolve().parents[1] / "models"))
 RATE_LIMIT = os.getenv("RATE_LIMIT", "20/minute")
+_infer_slots = asyncio.Semaphore(int(os.getenv("INFER_CONCURRENCY", "2")))
 
 
 def client_key(request: Request) -> str:
+    """Rate-limit key. Behind a proxy (TRUST_PROXY=1) use the RIGHT-most X-Forwarded-For entry: that one is
+    appended by our own proxy, while anything to its left is whatever the client chose to send."""
     if os.getenv("TRUST_PROXY") == "1":
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
-            return fwd.split(",")[0].strip()
+            return fwd.split(",")[-1].strip()
     return get_remote_address(request)
 
 
@@ -85,9 +91,21 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", 
 
 
 # --------------------------------------------------------------------- errors always carry the disclaimer
+class InputRejected(Exception):
+    """The image is outside the model's input contract. No score is produced for it."""
+
+    def __init__(self, code: str, reason: str):
+        self.code, self.reason = code, reason
+
+
 @app.exception_handler(HTTPException)
 async def http_error(_: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "disclaimer": DISCLAIMER})
+
+
+@app.exception_handler(InputRejected)
+async def input_rejected(_: Request, exc: InputRejected):
+    return JSONResponse(status_code=422, content={"detail": exc.reason, "code": exc.code, "disclaimer": DISCLAIMER})
 
 
 @app.exception_handler(RequestValidationError)
@@ -133,9 +151,18 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
     if fmt not in ALLOWED_FORMATS:
         raise HTTPException(415, f"Unsupported image type {fmt}. Use PNG, JPEG or BMP.")
     if min(img.size) < 32:
-        raise HTTPException(422, "Image is too small (minimum 32 x 32 px).")
+        raise InputRejected("insufficient_image_quality", "Image is too small (minimum 32 x 32 px).")
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        pass
+    qc = check_input(img)
+    if not qc.ok:
+        raise InputRejected(qc.code, qc.reason)
 
-    pred = state["model"].predict(img)
+    # ONNX Runtime is blocking CPU work; keep it off the event loop. The semaphore bounds concurrent runs.
+    async with _infer_slots:
+        pred = await run_in_threadpool(state["model"].predict, img)
     sha = hashlib.sha256(data).hexdigest()
     db: Database = state["db"]
     prediction_id = db.log_prediction(sha, pred, session_id)

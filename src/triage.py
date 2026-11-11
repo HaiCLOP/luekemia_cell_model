@@ -38,7 +38,7 @@ def logit(p, eps=1e-6):
 
 
 def load(name):
-    d = np.load(resolve("reports/preds") / f"{name}_val.npz", allow_pickle=True)
+    d = np.load(resolve("reports/preds") / f"{name}_val.npz", allow_pickle=False)
     return d["logits"].astype(float), d["labels"].astype(int), d["groups"].astype(str)
 
 
@@ -61,12 +61,14 @@ def crossfit_temperature(z, y, g):
     return out, temps
 
 
-def crossfit_band(p, y, g, target):
-    """Choose the band on 2/3 of subjects, apply to the held-out 1/3. Returns pooled decisions."""
+def crossfit_band(z, y, g, target):
+    """Nested over the same subject folds: on each outer-training 2/3, fit the temperature AND choose the
+    band; apply both to the held-out 1/3. No held-out subject's label touches either fitted quantity."""
     dec = np.zeros(len(y), dtype=int)
-    for tr, te in folds(y, g, seed=1):
-        b = choose_band(p[tr], y[tr], target_miss=target)
-        dec[te] = apply_band(p[te], b["t_low"], b["t_high"])
+    for tr, te in folds(y, g):
+        t = fit_temperature(z[tr], y[tr])
+        b = choose_band(apply_temperature(z[tr], t), y[tr], target_miss=target)
+        dec[te] = apply_band(apply_temperature(z[te], t), b["t_low"], b["t_high"])
     pos = y == 1
     return {"referral_rate": float((dec == -1).mean()),
             "miss_rate": float(((dec == 0) & pos).sum() / pos.sum()),
@@ -161,7 +163,7 @@ def main() -> None:
 
     # ---------------- band evaluation (cross-fitted) vs baselines, on the cross-fit calibrated ensemble
     p_cf = cal_probs["Ensemble of 5 B0 seeds"]
-    band_cf, dec = crossfit_band(p_cf, y, g, target)
+    band_cf, dec = crossfit_band(z_ens, y, g, target)
     pos = y == 1
     fixed = {"referral_rate": 0.0, "miss_rate": float(((p_cf < 0.5) & pos).sum() / pos.sum()),
              "false_alarm_rate": float(((p_cf >= 0.5) & ~pos).sum() / (~pos).sum())}

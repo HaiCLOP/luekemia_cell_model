@@ -1,0 +1,89 @@
+{
+  "note": "validation only; deployed ensemble, calibrated score; area = fraction of non-black pixels",
+  "model_roc_auc": {
+    "value": 0.952181696374639,
+    "ci95": [
+      0.8561976052986247,
+      0.9782078837557844
+    ]
+  },
+  "size_only_roc_auc": {
+    "value": 0.7811261023799326,
+    "ci95": [
+      0.48164437862973236,
+      0.8601330517156691
+    ]
+  },
+  "size_stratified_roc_auc": 0.9181522978251291,
+  "strata": [
+    {
+      "quintile": 1,
+      "area_range": [
+        0.059190123456790124,
+        0.12932345679012347
+      ],
+      "n_leukemic": 46,
+      "n_normal": 316,
+      "roc_auc": 0.9497110621904238
+    },
+    {
+      "quintile": 2,
+      "area_range": [
+        0.12938271604938273,
+        0.15553580246913581
+      ],
+      "n_leukemic": 256,
+      "n_normal": 105,
+      "roc_auc": 0.9223214285714286
+    },
+    {
+      "quintile": 3,
+      "area_range": [
+        0.1555851851851852,
+        0.17423703703703702
+      ],
+      "n_leukemic": 303,
+      "n_normal": 60,
+      "roc_auc": 0.9235423542354235
+    },
+    {
+      "quintile": 4,
+      "area_range": [
+        0.17428148148148148,
+        0.20000987654320987
+      ],
+      "n_leukemic": 312,
+      "n_normal": 50,
+      "roc_auc": 0.9008333333333333
+    },
+    {
+      "quintile": 5,
+      "area_range": [
+        0.20017283950617284,
+        0.24886913580246914
+      ],
+      "n_leukemic": 289,
+      "n_normal": 73,
+      "roc_auc": 0.8997013793430346
+    }
+  ],
+  "false_alarm_above_band_by_area_quintile": [
+    0.02531645569620253,
+    0.18095238095238095,
+    0.45,
+    0.38,
+    0.5068493150684932
+  ],
+  "size_matched": {
+    "n_pairs": 334,
+    "tolerance": 0.02,
+    "area_auc_after_matching": 0.5039800638244469,
+    "roc_auc": {
+      "value": 0.8834576356269497,
+      "ci95": [
+        0.7672811986475698,
+        0.9377606227547304
+      ]
+    }
+  }
+}

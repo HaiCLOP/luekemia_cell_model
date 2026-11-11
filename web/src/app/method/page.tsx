@@ -57,7 +57,7 @@ export default function Method() {
         <p>
           Instead the model gets a third answer. Its scores are first calibrated so that 0.8 means roughly 80%. Then two thresholds are chosen
           on validation subjects: below the lower one the cell is called normal, above the upper one leukemic, and in between it goes to a
-          person. On held-out subjects the band referred {pct(b.band.referral_rate)} of cells and cut missed leukemic cells from{" "}
+          person. Fitted on two thirds of the validation subjects and scored on the remaining third (rotated, nested), the band referred {pct(b.band.referral_rate)} of cells and cut missed leukemic cells from{" "}
           {pct(b.fixed.miss_rate)} to {pct(b.band.miss_rate)}, while false alarms stayed at {pct(b.band.false_alarm_rate)}. Referring the same
           share of cells at random barely helps ({pct(b.random.miss_rate)} missed).
         </p>

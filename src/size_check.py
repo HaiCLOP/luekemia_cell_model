@@ -37,7 +37,7 @@ def main(runs: list[str]) -> None:
     v = cell_areas(cfg)
     rows = []
     for run in runs:
-        d = np.load(resolve("reports/preds") / f"{run}_val.npz", allow_pickle=True)
+        d = np.load(resolve("reports/preds") / f"{run}_val.npz", allow_pickle=False)
         p, y = sigmoid(d["logits"]), d["labels"].astype(int)
         assert len(p) == len(v) and (y == v.label.to_numpy()).all()
         n, a = v.label == 0, v.label == 1

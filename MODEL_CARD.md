@@ -41,6 +41,11 @@ Research and education on calibrated uncertainty and selective prediction in med
 segmented lymphocyte crops similar to C-NMC 2019 (cell on a black background, about 450 px). Out of scope: whole slides,
 other cell types, other stains or microscopes without re-validation, and any clinical use.
 
+The API enforces part of this: images that are not near-square, have no black background around the object, contain more
+than one object or show no internal detail are refused with `unsupported_input` or `insufficient_image_quality` and get
+no score (`api/quality.py`). These are coarse checks, not an out-of-distribution detector. The output is a research score
+for one cropped cell, not a probability that a person has leukemia, and it is not a patient-level diagnosis.
+
 ## Training data
 
 C-NMC 2019 (ISBI challenge) from The Cancer Imaging Archive, CC BY 3.0, via two Hugging Face mirrors. The data audit removed
@@ -69,16 +74,19 @@ stopping on validation PR-AUC. Seeds 42 to 46.
 | Small CNN from scratch | 0.948 | 0.915 | 0.936 | 0.722 | 0.026 |
 | Frozen ImageNet features + logistic regression | 0.892 | 0.850 | 0.857 | 0.684 | 0.069 |
 
-Refer-to-expert band (cross-fitted over validation subjects):
+Refer-to-expert band, nested cross-fit over validation subjects (temperature and band both fitted on two thirds of the
+subjects, scored on the held-out third, same three folds; earlier versions of this card used two different fold splits
+and reported 2.90%):
 
 | Policy | Referred | Missed leukemic | False alarms on normal |
 |---|---|---|---|
 | Single threshold 0.5 | 0% | 7.55% | 18.2% |
 | Single threshold lowered to meet 2% miss | 0% | 1.99% | 34.3% |
-| Random referral at the same rate | 8.0% | 6.95% | n/a |
-| **Referral band [0.20, 0.50]** | 8.0% | **2.90%** | 18.7% |
+| Random referral at the same rate | 8.1% | 6.94% | n/a |
+| **Referral band [0.20, 0.50]** | 8.1% | **2.74%** | 18.4% |
 
-Per 100 referred cells the band avoids 38.6 missed leukemic cells, against 5.0 for random referral.
+The 2% target is met in-sample only; out of sample the estimate is 2.74%. These are still validation numbers: the
+checkpoints themselves were selected on the same subjects. Per 100 referred cells the band avoids 39.7 missed leukemic cells, against 5.0 for random referral.
 
 ## Known failure mode: cell size
 
@@ -87,6 +95,20 @@ seeds (0.53 to 0.78 across all architectures tested). Normal cells that trigger 
 One validation subject (H34) with large normal cells is classified leukemic at the subject level. Scale-jitter augmentation
 did not remove this (0.62). Grad-CAM concentrates on the cell (median 2.5x enrichment) but does not localise features within
 the cell better than random cell pixels. Expect reduced performance on images with different magnification.
+
+How much of the score is size? (`python -m src.size_matched`, deployed ensemble, validation, subject-clustered 95% CIs)
+
+| Check | ROC-AUC |
+|---|---|
+| Deployed model, all validation cells | 0.952 (0.856 to 0.978) |
+| Cell area alone as the classifier | 0.781 (0.482 to 0.860) |
+| Model, inside each area quintile (weighted mean) | 0.918 |
+| Model, 334 leukemic/normal pairs matched on area (area AUC after matching 0.504) | 0.883 (0.767 to 0.938) |
+
+The model keeps most of its ranking ability when size is held fixed, so it is not only a size detector, but size is worth
+roughly 0.03 to 0.07 AUC of the headline number. The errors follow size closely: the share of normal cells scored above
+the referral band rises from 2.5% in the smallest area quintile to 51% in the largest. Any change of magnification or
+crop policy moves cells between these quintiles, which is why external validation comes before any new disease class.
 
 ## Limitations
 

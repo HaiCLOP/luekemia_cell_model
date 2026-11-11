@@ -42,7 +42,23 @@ def main() -> None:
     models = [{"name": label[r["run"]], "pr_auc": float(r["pr_auc"]), "pr_auc_ci": ci(r["pr_auc_ci"]),
                "roc_auc": float(r["roc_auc"]), "roc_auc_ci": ci(r["roc_auc_ci"]), "recall": float(r["recall"]),
                "specificity": float(r["specificity"]), "ece": float(r["ece"])} for r in comp if r["run"] in label]
-    models.sort(key=lambda r: -r["pr_auc"])
+    for r in models:
+        r["deployed"] = False
+
+    # the deployed model itself: mean of the five seeds' probabilities, raw (temperature does not change ranking)
+    from src.evaluate import binary_metrics, cluster_bootstrap
+
+    runs = [np.load(REP / "preds" / f"effb0_main_s{s}_val.npz", allow_pickle=False) for s in cfg["calibration"]["ensemble_seeds"]]
+    p_ens = np.mean([1 / (1 + np.exp(-r["logits"])) for r in runs], 0)
+    y_val, g_val = runs[0]["labels"], runs[0]["groups"]
+    bm = binary_metrics(p_ens, y_val, n_bins=cfg["calibration"]["ece_bins"])
+    iters = cfg["eval"]["bootstrap_iters"]
+    models.append({
+        "name": "Deployed: 5-seed EfficientNet-B0 ensemble", "deployed": True,
+        "pr_auc": bm["pr_auc"], "pr_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["pr_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
+        "roc_auc": bm["roc_auc"], "roc_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["roc_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
+        "recall": bm["recall"], "specificity": bm["specificity"], "ece": bm["ece"]})
+    models.sort(key=lambda r: (not r["deployed"], -r["pr_auc"]))
 
     ens_raw = next(r for r in triage["calibration"] if r["model"].startswith("Ensemble") and r["variant"] == "raw")
     ens_ts = next(r for r in triage["calibration"] if r["model"].startswith("Ensemble") and r["variant"].startswith("temperature"))
@@ -71,7 +87,10 @@ def main() -> None:
                  "patient_ids": len({r["patient_id"] for r in rows}), "splits": splits,
                  "corrupt_removed": 350, "duplicates_removed": 110, "merged_groups": 4},
         "headline": {"split": "validation, 18 subjects", "pr_auc": ens_raw["pr_auc"], "roc_auc": ens_raw["roc_auc"],
-                     "pr_auc_ci": [0.906, 0.994], "ece": ens_raw["ece"], "ece_ci": ens_raw["ece_ci"]},
+                     "pr_auc_ci": next(m["pr_auc_ci"] for m in models if m["deployed"]),
+                     "ece_raw": ens_raw["ece"], "ece_raw_ci": ens_raw["ece_ci"],
+                     "ece_calibrated": ens_ts["ece"], "ece_calibrated_ci": ens_ts["ece_ci"],
+                     "ece_bins": cfg["calibration"]["ece_bins"]},
         "models": models,
         "calibration": [
             {"label": "Single model, raw", "ece": single_raw["ece"], "nll": single_raw["nll"]},
@@ -103,7 +122,7 @@ def main() -> None:
     picks = {"sample-leukemic.png": "images/cnmc-leukemia-2019/UID_22_1_1_all.png",
              "sample-normal.png": "images/cnmc-leukemia-2019/UID_H12_1_1_hem.png"}
     # borderline: a validation cell whose ensemble probability sits inside the band
-    P = np.mean([1 / (1 + np.exp(-np.load(REP / "preds" / f"effb0_main_s{s}_val.npz", allow_pickle=True)["logits"]))
+    P = np.mean([1 / (1 + np.exp(-np.load(REP / "preds" / f"effb0_main_s{s}_val.npz", allow_pickle=False)["logits"]))
                  for s in cfg["calibration"]["ensemble_seeds"]], 0)
     val = [r for r in rows if r["split"] == "val"]
     mid = int(np.argmin(np.abs(P - 0.35)))

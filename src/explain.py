@@ -137,7 +137,7 @@ def main() -> None:
     val = load_split(cfg, "val")
     P = []
     for s in cfg["calibration"]["ensemble_seeds"]:
-        d = np.load(resolve("reports/preds") / f"effb0_main_s{s}_val.npz", allow_pickle=True)
+        d = np.load(resolve("reports/preds") / f"effb0_main_s{s}_val.npz", allow_pickle=False)
         P.append(sigmoid(d["logits"]))
     p_ens = np.mean(P, 0)
     z = np.log(np.clip(p_ens, 1e-6, 1 - 1e-6) / np.clip(1 - p_ens, 1e-6, 1))
@@ -191,7 +191,7 @@ def main() -> None:
         axes[0, 0].set_ylabel("cell", fontsize=10)
         axes[1, 0].set_ylabel("Grad-CAM", fontsize=10)
         axes[2, 0].set_ylabel("Integrated\nGradients", fontsize=10)
-        fig.suptitle(f"{case.capitalize()}  ·  EfficientNet-B0 seed 42, validation", fontsize=11, x=0.02, ha="left")
+        fig.suptitle(f"{case.capitalize()}  ·  cases picked by the ensemble; maps from member seed 42 only", fontsize=11, x=0.02, ha="left")
         fig.tight_layout()
         fig.savefig(figs / f"gallery_{case.split(' (')[0].replace(' ', '_')}.png", dpi=130)
         plt.close(fig)

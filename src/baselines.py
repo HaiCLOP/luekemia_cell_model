@@ -53,7 +53,7 @@ def main() -> None:
     (out / "preds").mkdir(parents=True, exist_ok=True)
     (out / "runs").mkdir(parents=True, exist_ok=True)
     np.savez(out / "preds" / "baseline_a_lr_val.npz", logits=logits, labels=yva,
-             patients=va_df["patient_id"].astype(str).to_numpy(), groups=va_df["group_id"].astype(str).to_numpy())
+             patients=va_df["patient_id"].to_numpy(dtype=str), groups=va_df["group_id"].to_numpy(dtype=str))
     summary = {"name": "baseline_a_lr", "arch": "efficientnet_b0 frozen + logistic regression", "C": c,
                "seed": cfg["seed"], "git_sha": git_sha(), "config_hash": config_hash(cfg),
                "finished": datetime.now(timezone.utc).isoformat(), "val_metrics": m}

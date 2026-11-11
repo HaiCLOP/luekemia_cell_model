@@ -32,19 +32,22 @@
     "roc_auc": 0.952181696374639,
     "ece_calibrated": 0.0231927498937986,
     "band_crossfit": {
-      "referral_rate": 0.08011049723756906,
-      "miss_rate": 0.02902155887230514,
-      "false_alarm_rate": 0.1870860927152318,
-      "auto_accuracy": 0.9111111111111111,
+      "referral_rate": 0.08066298342541436,
+      "miss_rate": 0.02736318407960199,
+      "false_alarm_rate": 0.1837748344370861,
+      "auto_accuracy": 0.9134615384615384,
       "target_miss_rate": 0.02,
-      "n_referred": 145,
-      "misses_avoided_per_100_referred": 38.62068965517242
-    }
+      "n_referred": 146,
+      "misses_avoided_per_100_referred": 39.72602739726028
+    },
+    "band_crossfit_method": "nested: temperature and band both fitted on 2/3 of validation subjects, scored on the other 1/3, same folds",
+    "ece_raw": 0.021033921719418727
   },
-  "git_sha": "nogit",
+  "git_sha": null,
   "config_hash": "a3ee6923173a",
   "onnx_file": "effb0-ens5-v1.onnx",
   "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
   "exported": "2026-11-09T18:18:20.894193+00:00",
-  "disclaimer": "Research demo. Not for clinical use."
+  "disclaimer": "Research demo. Not for clinical use.",
+  "source_note": "Exported before the repository had commits. The export code is in commit 956490a; the ONNX file is identified by onnx_sha256."
 }

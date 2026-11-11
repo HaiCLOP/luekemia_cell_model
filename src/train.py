@@ -55,7 +55,7 @@ def run_stage(model, loaders, cfg, device, epochs, lr, stage, state, log):
     t = cfg["train"]
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=t["weight_decay"])
-    steps_per_epoch = max(1, len(loaders["train"]) // t["grad_accum"])
+    steps_per_epoch = max(1, -(-len(loaders["train"]) // t["grad_accum"]))  # ceil: the last partial group also steps
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=max(1, epochs * steps_per_epoch))
     scaler = torch.amp.GradScaler("cuda", enabled=t["amp"] and device.type == "cuda")
     crit = state["criterion"]
@@ -73,7 +73,8 @@ def run_stage(model, loaders, cfg, device, epochs, lr, stage, state, log):
                     y = y * (1 - t["label_smoothing"]) + 0.5 * t["label_smoothing"]
                 loss = crit(logits.float(), y) / t["grad_accum"]
             scaler.scale(loss).backward()
-            if (i + 1) % t["grad_accum"] == 0:
+            # step on every full accumulation group, and on the last batch so a leftover group is not dropped
+            if (i + 1) % t["grad_accum"] == 0 or i + 1 == len(loaders["train"]):
                 scaler.step(opt)
                 scaler.update()
                 opt.zero_grad(set_to_none=True)
@@ -150,7 +151,7 @@ def train(cfg: dict, name: str) -> dict:
     preds_dir = resolve(cfg["paths"]["reports"]) / "preds"
     preds_dir.mkdir(parents=True, exist_ok=True)
     np.savez(preds_dir / f"{name}_val.npz", logits=val_logits, labels=val_df["label"].to_numpy(),
-             patients=val_df["patient_id"].astype(str).to_numpy(), groups=val_df["group_id"].astype(str).to_numpy())
+             patients=val_df["patient_id"].to_numpy(dtype=str), groups=val_df["group_id"].to_numpy(dtype=str))
 
     summary = {
         "val_metrics": val_metrics,

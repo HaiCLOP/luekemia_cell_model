@@ -38,7 +38,7 @@ METRICS = {
 
 
 def summarize_run(path, iters: int) -> dict:
-    d = np.load(path, allow_pickle=True)
+    d = np.load(path, allow_pickle=False)
     p, y = sigmoid(d["logits"]), d["labels"].astype(int)
     groups = d["groups"] if "groups" in d.files else d["patients"]
     row = {"run": path.stem.rsplit("_", 1)[0], "n_images": len(y), "n_subjects": len(np.unique(groups))}
@@ -60,7 +60,7 @@ def main() -> None:
     cfg = load_config()
     reports = resolve(cfg["paths"]["reports"])
     files = sorted((reports / "preds").glob(f"*_{args.split}.npz"))
-    files = [f for f in files if not f.stem.startswith("smoke") and "logits" in np.load(f, allow_pickle=True).files]
+    files = [f for f in files if not f.stem.startswith("smoke") and "logits" in np.load(f, allow_pickle=False).files]
     rows = [summarize_run(f, cfg["eval"]["bootstrap_iters"]) for f in files]
     df = pd.DataFrame(rows).sort_values("pr_auc", ascending=False)
     out = reports / "tables"

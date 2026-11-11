@@ -61,20 +61,20 @@ export default async function ModelCard() {
       </section>
 
       <section style={{ marginTop: 56 }} aria-labelledby="perf">
-        <h2 id="perf" className="display">Performance on <em>held-out subjects.</em></h2>
+        <h2 id="perf" className="display">Performance on <em>validation subjects.</em></h2>
         <p className="lede">
           All numbers below are on the validation subjects with 95% intervals from resampling whole subjects. The separate test set
           ({d.splits.test.subjects} subjects) is untouched and will be reported once, after every choice is frozen.
         </p>
         <div className="card table-wrap" style={{ marginTop: 20 }}>
           <table>
-            <caption>Validation, threshold 0.5. Deployed model: ensemble of 5 EfficientNet-B0 seeds (PR-AUC {f3(results.headline.pr_auc)}, interval {ci(results.headline.pr_auc_ci)}).</caption>
+            <caption>Validation ({results.headline.split}), threshold 0.5 on the uncalibrated score. The highlighted row is the deployed model; the others are single-seed comparisons. ECE uses {results.headline.ece_bins} equal-width bins.</caption>
             <thead>
-              <tr><th scope="col">Model</th><th scope="col" className="num">PR-AUC</th><th scope="col" className="num">ROC-AUC</th><th scope="col" className="num">Recall (ALL)</th><th scope="col" className="num">Specificity</th><th scope="col" className="num">ECE</th></tr>
+              <tr><th scope="col">Model</th><th scope="col" className="num">PR-AUC</th><th scope="col" className="num">ROC-AUC</th><th scope="col" className="num">Recall (ALL)</th><th scope="col" className="num">Specificity</th><th scope="col" className="num">ECE (raw)</th></tr>
             </thead>
             <tbody>
               {results.models.map((r) => (
-                <tr key={r.name} className={r.name.startsWith("EfficientNet") ? "hl" : ""}>
+                <tr key={r.name} className={r.deployed ? "hl" : ""}>
                   <th scope="row" style={{ textTransform: "none", fontSize: 14.5, color: "var(--ink)", letterSpacing: 0 }}>{r.name}</th>
                   <td className="num">{f3(r.pr_auc)} <span className="ci">{ci(r.pr_auc_ci)}</span></td>
                   <td className="num">{f3(r.roc_auc)} <span className="ci">{ci(r.roc_auc_ci)}</span></td>
@@ -117,8 +117,8 @@ export default async function ModelCard() {
             </tbody>
           </table>
           <p className="small">
-            Per 100 referred cells the band avoids {b.band.misses_avoided_per_100_referred.toFixed(1)} missed leukemic cells; random referral
-            avoids {b.random.misses_avoided_per_100_referred.toFixed(1)}. Cross-fitted over subjects; the 2% target was met in-sample, not out of sample.
+            Nested cross-fit: temperature and band fitted on two thirds of the validation subjects, scored on the rest. Per 100 referred cells the band avoids {b.band.misses_avoided_per_100_referred.toFixed(1)} missed leukemic cells; random referral
+            avoids {b.random.misses_avoided_per_100_referred.toFixed(1)}. The 2% target was met in-sample only; out of sample it is {pct(b.band.miss_rate)}.
           </p>
           <figure className="figure">
             <img src="/figures/risk_coverage.png" alt="Risk-coverage curve: error rate on automatically decided cells rises as more cells are decided automatically." />
@@ -151,7 +151,7 @@ export default async function ModelCard() {
           </div>
           <figure className="figure card">
             <img src="/figures/gallery_false_positive.png" alt="Five normal cells the model scored as leukemic, with Grad-CAM and Integrated Gradients heatmaps. Most are large cells." />
-            <figcaption>Normal cells the model wrongly flagged, with their heatmaps.</figcaption>
+            <figcaption>Normal cells the ensemble wrongly flagged. Heatmaps come from one member (seed 42), not the whole ensemble.</figcaption>
           </figure>
         </div>
       </section>
@@ -163,6 +163,8 @@ export default async function ModelCard() {
           <li>Only {d.subjects} independent subjects; intervals are wide and most differences between models are not established.</li>
           <li>Over-reliance on cell size, which depends on magnification. Expect a drop on images from other labs.</li>
           <li>Validation numbers only until the one-time test run is published.</li>
+          <li>Images that fail the input checks (not square, no black background, several objects, no detail) get no score at all. These checks catch obvious misuse; they are not a full out-of-distribution detector.</li>
+          <li>The score describes one cropped cell. It is not a probability that a person has leukemia.</li>
           <li>Not a medical device. Do not use it to make or support clinical decisions.</li>
         </ul>
         <p className="small" style={{ marginBottom: 0 }}>

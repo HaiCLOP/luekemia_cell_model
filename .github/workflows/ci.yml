@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   python:
     runs-on: ubuntu-latest
@@ -16,12 +19,12 @@ jobs:
       - name: Install (CPU only)
         run: |
           pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
-          pip install timm scikit-learn pandas pyyaml pillow numpy pytest ruff
+          pip install -r requirements-train.txt pytest==9.2.0 ruff
           pip install -r api/requirements.txt
       - name: Lint
         run: ruff check src api tests scripts --select E9,F63,F7,F82,F401 --ignore F401
       - name: Tests
-        # Data- and weight-dependent tests skip automatically in CI (no dataset, no ONNX file).
+        # API tests use a fake ONNX session, so they run here. Dataset- and real-weight tests skip.
         run: pytest -q -rs
 
   web:
@@ -34,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - name: Type check and banned-pattern check
         run: npm run lint
       - name: Build

@@ -34,21 +34,18 @@ class Database:
         return self.client is not None and self.status == "connected"
 
     def ensure_model_version(self, meta: dict) -> None:
-        """Create the model_versions row for the served model if missing; activate it if none is active."""
+        """Register the served artifact and make it the active version, atomically (supabase 0003 RPC).
+
+        Keyed by the ONNX SHA-256, so redeploying the same file is a no-op and a new file always takes over.
+        """
         if not self.enabled:
             return
-        t = self.client.table("model_versions")
-        found = t.select("id,is_active").eq("name", meta["name"]).execute().data
-        if found:
-            self.model_version_id = found[0]["id"]
-        else:
-            row = {"name": meta["name"], "architecture": meta["architecture"], "git_sha": meta.get("git_sha"),
-                   "checkpoint_uri": meta.get("onnx_file"), "temperature": meta["temperature"],
-                   "t_low": meta["t_low"], "t_high": meta["t_high"], "band_target": meta.get("band_target"),
-                   "metrics": meta.get("metrics"), "is_active": False}
-            self.model_version_id = t.insert(row).execute().data[0]["id"]
-        if not t.select("id").eq("is_active", True).execute().data:
-            t.update({"is_active": True}).eq("id", self.model_version_id).execute()
+        payload = {k: meta.get(k) for k in ("name", "architecture", "git_sha", "onnx_file", "onnx_sha256",
+                                             "temperature", "t_low", "t_high", "band_target", "metrics")}
+        self.model_version_id = self.client.rpc("activate_model_version", {"p": payload}).execute().data
+        active = self.client.table("model_versions").select("id").eq("is_active", True).execute().data
+        if [r["id"] for r in active] != [self.model_version_id]:
+            raise RuntimeError("model registry did not activate the served model")
 
     def log_prediction(self, sha256: str, pred, session_id: str | None) -> str:
         if not self.enabled or not self.model_version_id:

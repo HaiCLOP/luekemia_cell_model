@@ -56,9 +56,9 @@ export default function Home() {
             <div className="s">split by person, never by image</div>
           </div>
           <div>
-            <span className="label">Calibration error</span>
-            <div className="v">{results.headline.ece.toFixed(3)}</div>
-            <div className="s">stated confidence matches reality</div>
+            <span className="label">Calibration error (ECE)</span>
+            <div className="v">{results.headline.ece_calibrated.toFixed(3)}</div>
+            <div className="s">deployed, temperature scaled; {results.headline.ece_raw.toFixed(3)} before scaling</div>
           </div>
           <div>
             <span className="label">Missed leukemic cells</span>
@@ -69,7 +69,7 @@ export default function Home() {
           </div>
         </section>
         <p className="small" style={{ marginTop: 12 }}>
-          Validation results on 18 held-out subjects. The final test set stays untouched until every choice is frozen.
+          Validation results on 18 subjects not used for training; the referral figures are nested cross-fitted over those subjects. The final test set stays untouched until every choice is frozen.
         </p>
       </div>
 

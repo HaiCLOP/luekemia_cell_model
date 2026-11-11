@@ -35,11 +35,12 @@ export function Uploader() {
     }
   }
 
-  async function run(f: File) {
+  // The preview is passed in explicitly so a stale one from an earlier render can never sit beside a new result.
+  async function run(f: File, previewForFile: string) {
     setBusy(true);
     setError(null);
     try {
-      const [response, dataUrl] = await Promise.all([predict(f, store), preview ?? previewDataUrl(f)]);
+      const [response, dataUrl] = await Promise.all([predict(f, store), previewForFile]);
       const stored: StoredResult = { response, previewDataUrl: dataUrl, fileName: f.name, createdAt: new Date().toISOString() };
       sessionStorage.setItem(RESULT_KEY, JSON.stringify(stored));
       router.push("/result");
@@ -51,12 +52,17 @@ export function Uploader() {
 
   async function trySample(path: string, label: string) {
     setError(null);
-    const blob = await (await fetch(path)).blob();
-    const f = new File([blob], `${label.toLowerCase().replace(/\s+/g, "-")}.png`, { type: "image/png" });
-    setFile(f);
-    const url = await previewDataUrl(f);
-    setPreview(url);
-    await run(f);
+    try {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error("Could not load the sample cell. Please try again.");
+      const f = new File([await res.blob()], `${label.toLowerCase().replace(/\s+/g, "-")}.png`, { type: "image/png" });
+      const url = await previewDataUrl(f);
+      setFile(f);
+      setPreview(url);
+      await run(f, url);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   return (
@@ -105,7 +111,7 @@ export function Uploader() {
       </label>
 
       <div className="actions">
-        <button type="button" className="btn btn-primary" disabled={!file || busy} onClick={() => file && run(file)}>
+        <button type="button" className="btn btn-primary" disabled={!file || busy} onClick={() => file && preview && run(file, preview)}>
           {busy ? "Analysing..." : "Analyse cell"}
         </button>
         {file && !busy && (

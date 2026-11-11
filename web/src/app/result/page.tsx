@@ -13,7 +13,7 @@ const COPY = {
     stamp: "Normal",
     line1: "Reads as a",
     line2: "normal lymphocyte.",
-    body: "The calibrated score sits below the lower edge of the band, where the model has been reliable on held-out subjects.",
+    body: "The calibrated score sits below the lower edge of the band, where the model has been reliable on validation subjects.",
   },
   leukemic: {
     stamp: "Leukemic",
@@ -141,7 +141,7 @@ export default function ResultPage() {
             ) : (
               <p className="small">No heatmap returned.</p>
             )}
-            <figcaption>Where the model looked · brighter = more influence</figcaption>
+            <figcaption>Class activation map, averaged over the five ensemble members · brighter = more influence</figcaption>
           </figure>
         </div>
       </article>
@@ -150,9 +150,10 @@ export default function ResultPage() {
         <h2 id="refer-title" style={{ fontSize: 18, margin: 0 }}>What “refer to expert” means</h2>
         <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
           The model has three answers, not two. Scores between {r.band.t_low.toFixed(2)} and {r.band.t_high.toFixed(2)} are where it has been wrong
-          most often, so it hands those cells to a haematologist. On 18 held-out subjects this sent {pct(BAND.band.referral_rate)} of cells to review
+          most often, so it hands those cells to a haematologist. On 18 validation subjects (nested cross-fit) this sent {pct(BAND.band.referral_rate)} of cells to review
           and cut missed leukemic cells from {pct(BAND.fixed.miss_rate)} to {pct(BAND.band.miss_rate)}. The heatmap shows what the model used, not
-          proof that it used the right thing: in testing it leaned heavily on cell size.
+          proof that it used the right thing: in testing it leaned heavily on cell size. The score is a research output for one cropped
+          cell, not a probability that a person has leukemia.
         </p>
       </section>
 

@@ -7,8 +7,10 @@ ensemble logit -> refer-to-expert band.
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,15 +40,34 @@ class Model:
     def __init__(self, model_dir: str | Path):
         model_dir = Path(model_dir)
         self.meta = json.loads((model_dir / "model_meta.json").read_text())
+        self._verify(model_dir)
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        self.session = ort.InferenceSession(str(model_dir / self.meta["onnx_file"]), opts, providers=["CPUExecutionProvider"])
+        self.session = self._session(model_dir / self.meta["onnx_file"], opts)
         inp = self.meta["input"]
         self.size = int(inp["size"])
         self.mean = np.array(inp["mean"], dtype=np.float32).reshape(3, 1, 1)
         self.std = np.array(inp["std"], dtype=np.float32).reshape(3, 1, 1)
         self.temperature = float(self.meta["temperature"])
         self.t_low, self.t_high = float(self.meta["t_low"]), float(self.meta["t_high"])
+
+    @staticmethod
+    def _session(path: Path, opts):
+        return ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
+
+    def _verify(self, model_dir: Path) -> None:
+        """Refuse to serve an artifact that does not match its metadata (wrong file, partial download)."""
+        m = self.meta
+        if not (0 <= m["t_low"] <= m["t_high"] <= 1) or m["temperature"] <= 0:
+            raise ValueError("model_meta.json has an invalid band or temperature")
+        if os.getenv("SKIP_MODEL_CHECKSUM") == "1":
+            return
+        h = hashlib.sha256()
+        with open(model_dir / m["onnx_file"], "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        if h.hexdigest() != m["onnx_sha256"]:
+            raise ValueError(f"{m['onnx_file']} checksum does not match model_meta.json")
 
     # ------------------------------------------------------------------ steps
     def preprocess(self, img: Image.Image) -> tuple[np.ndarray, Image.Image]:
