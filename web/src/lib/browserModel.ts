@@ -97,13 +97,66 @@ export class InputRejected extends Error {
   }
 }
 
-/** The image's own pixels at native size, RGBA, with no resampling or colour conversion. */
-function nativePixels(img: ImageBitmap): Uint8ClampedArray {
+/** A decoded image: its size and something a canvas can draw. */
+export interface Decoded {
+  width: number;
+  height: number;
+  el: CanvasImageSource;
+}
+
+const MAX_SIDE = 2048; // phone photos can be 4000+ px; canvases on some phones refuse very large images
+
+/**
+ * Decode an uploaded file. First choice: no colour-space conversion and no alpha premultiplication, so pixels match
+ * what Python reads. Some mobile browsers reject those options ("the source image could not be decoded"), so fall
+ * back to a plain decode, then to an <img> element. Very large photos are scaled down to at most 2048 px first.
+ */
+export async function decodeImage(file: Blob): Promise<Decoded> {
+  let src: Decoded | null = null;
+  for (const opts of [{ colorSpaceConversion: "none", premultiplyAlpha: "none" } as ImageBitmapOptions, undefined]) {
+    try {
+      const bmp = await createImageBitmap(file, opts);
+      src = { width: bmp.width, height: bmp.height, el: bmp };
+      break;
+    } catch {
+      /* try the next way */
+    }
+  }
+  if (!src) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+      await img.decode();
+      src = { width: img.naturalWidth, height: img.naturalHeight, el: img };
+    } catch {
+      throw new InputRejected("unsupported_input", "This browser could not read the image. Try saving it as PNG or JPEG and upload again.");
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+  }
+  const side = Math.max(src.width, src.height);
+  if (side > MAX_SIDE) {
+    const k = MAX_SIDE / side;
+    const c = document.createElement("canvas");
+    c.width = Math.round(src.width * k);
+    c.height = Math.round(src.height * k);
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(src.el, 0, 0, c.width, c.height);
+    src = { width: c.width, height: c.height, el: c };
+  }
+  return src;
+}
+
+/** The image's own pixels at native size, RGBA, with no resampling. */
+function nativePixels(img: Decoded): Uint8ClampedArray {
   const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
   const ctx = c.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(img.el, 0, 0);
   return ctx.getImageData(0, 0, img.width, img.height).data;
 }
 
@@ -173,7 +226,7 @@ function resizePIL(src: Uint8ClampedArray, inW: number, inH: number, outW: numbe
   return out;
 }
 
-function pixels(img: ImageBitmap, w: number, h: number): Uint8Array {
+function pixels(img: Decoded, w: number, h: number): Uint8Array {
   return resizePIL(nativePixels(img), img.width, img.height, w, h);
 }
 
@@ -207,7 +260,7 @@ function largestBlobShare(fg: Uint8Array, n: number): number {
   return best / total;
 }
 
-export function checkInput(img: ImageBitmap): void {
+export function checkInput(img: Decoded): void {
   const w = img.width, h = img.height;
   const px = pixels(img, THUMB, THUMB);
   const n = THUMB;
@@ -250,7 +303,7 @@ export function checkInput(img: ImageBitmap): void {
     throw new InputRejected("unsupported_input", "The image is not close to square. Upload one cropped cell in a square frame.");
   if (fgShare < MIN_FG) throw new InputRejected("insufficient_image_quality", "The image is almost entirely black. No cell was found.");
   if (borderDark / borderN < MIN_BORDER_DARK)
-    throw new InputRejected("unsupported_input", "This does not look like a segmented cell on a black background. Whole smears, photos and uncropped fields are not supported.");
+    throw new InputRejected("unsupported_input", "This looks like a smear photo or an uncropped field, not one cell cut out on a black background. This page reads one segmented cell; whole smears need the Smear page (local API for now).");
   if (fgShare > MAX_FG)
     throw new InputRejected("unsupported_input", "The cell fills the whole frame. The model expects a cell with black background around it.");
   if (largestBlobShare(fg, n) < MIN_MAIN_BLOB)
@@ -299,8 +352,7 @@ function heatmap(cam: Float32Array, side: number, rgb: Uint8Array, size: number)
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-Math.max(-50, Math.min(50, z))));
 
 export async function predictInBrowser(file: File, onProgress?: (fraction: number) => void): Promise<PredictResponse> {
-  // decode without colour-space conversion or alpha premultiplication, so pixels match what Python reads
-  const img = await createImageBitmap(file, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+  const img = await decodeImage(file);
   if (Math.min(img.width, img.height) < 32)
     throw new InputRejected("insufficient_image_quality", "Image is too small (minimum 32 x 32 px).");
   checkInput(img);
