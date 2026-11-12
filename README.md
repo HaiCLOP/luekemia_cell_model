@@ -85,6 +85,10 @@ API: `GET /health`, `GET /models/active`, `POST /predict` (multipart `file`, opt
 `POST /analyze-smear` (multipart `file`, optional `um_per_px`): finds every white cell in a smear, scores the lymphoid-like
 ones and returns an annotated image. Read the smear section of [MODEL_CARD.md](MODEL_CARD.md) before trusting it: the cell
 finder is reliable, the single-cell model does not transfer well to other microscopes.
+
+**Live site, no server:** https://mh51401122.vercel.app runs everything in the browser. The single-cell model and the
+cell-type filter use ONNX Runtime Web (weights from https://huggingface.co/Velion/MH51401122), the smear cell finder runs as
+real Python under Pyodide, and the Blood count page checks CLL and CML criteria. Images never leave the device.
 Images are never stored unless the user opts in (private bucket, deleted after 24 hours); predictions log only a SHA-256.
 
 ## Licence and credit

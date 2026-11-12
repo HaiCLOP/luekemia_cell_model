@@ -1,0 +1,42 @@
+{
+  "threshold": 0.9303185939788818,
+  "threshold_rule": "keep >= 98% of C-NMC training cells and PBC validation lymphocytes",
+  "pbc_test_per_class": {
+    "monocyte": {
+      "n": 166,
+      "kept": 0.0
+    },
+    "ig": {
+      "n": 296,
+      "kept": 0.0033783783783783786
+    },
+    "neutrophil": {
+      "n": 353,
+      "kept": 0.0
+    },
+    "basophil": {
+      "n": 112,
+      "kept": 0.0
+    },
+    "lymphocyte": {
+      "n": 130,
+      "kept": 0.9692307692307692
+    },
+    "erythroblast": {
+      "n": 155,
+      "kept": 0.0064516129032258064
+    },
+    "eosinophil": {
+      "n": 316,
+      "kept": 0.0
+    }
+  },
+  "pbc_test_other_white_cells_dropped": 0.9985693848354793,
+  "cnmc_validation_kept": {
+    "normal": 1.0,
+    "leukemic": 1.0
+  },
+  "input_size": 160,
+  "onnx_file": "cell_type_filter.onnx",
+  "onnx_sha256": "7c0721dc4168abbbc74db28fa5bfc8baad3a761ce6919a7999df80d4539efc0e"
+}

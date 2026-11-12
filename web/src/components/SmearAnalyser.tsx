@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ACCEPTED, SMEAR_MAX_BYTES, analyzeSmear, type SmearDecision, type SmearResponse } from "@/lib/api";
+import { ACCEPTED, RUN_IN_BROWSER, SMEAR_MAX_BYTES, analyzeSmear, type SmearDecision, type SmearResponse } from "@/lib/api";
 
 const SAMPLES = [
   { file: "/samples/smear-bccd-1.jpg", label: "Sample A: granulocytes" },
@@ -31,6 +31,7 @@ export function SmearAnalyser() {
   const [um, setUm] = useState("");
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SmearResponse | null>(null);
 
@@ -50,7 +51,10 @@ export function SmearAnalyser() {
     setResult(null);
     const umVal = parseFloat(um);
     try {
-      setResult(await analyzeSmear(f, umVal > 0 ? umVal : undefined));
+      const um = umVal > 0 ? umVal : undefined;
+      setResult(RUN_IN_BROWSER
+        ? await import("@/lib/browserSmear").then((m) => m.analyzeSmearInBrowser(f, um, setStatus))
+        : await analyzeSmear(f, um));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -114,7 +118,9 @@ export function SmearAnalyser() {
           <button type="button" className="btn btn-primary" disabled={!file || busy} onClick={() => file && run(file)}>
             {busy ? "Analysing..." : "Analyse smear"}
           </button>
-          <span role="status" aria-live="polite" className="small">{busy ? "Finding cells, then scoring each one with the five-model ensemble." : ""}</span>
+          <span role="status" aria-live="polite" className="small">
+            {!busy ? "" : RUN_IN_BROWSER ? status || "Starting" : "Finding cells, then scoring each one with the five-model ensemble."}
+          </span>
         </div>
 
         {error && <p className="error" role="alert">{error}</p>}

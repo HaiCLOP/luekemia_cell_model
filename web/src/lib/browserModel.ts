@@ -8,7 +8,6 @@ import type { PredictResponse } from "@/lib/api";
 export const MODEL_URL =
   process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/MH51401122.onnx";
 export const MODEL_MB = 76;
-const CACHE_NAME = `cell-triage-model-${meta.onnx_sha256.slice(0, 12)}`;
 
 type Ort = typeof import("onnxruntime-web");
 let ortPromise: Promise<Ort> | null = null;
@@ -26,11 +25,12 @@ async function loadOrt(): Promise<Ort> {
 }
 
 /** Downloads the model once (about 76 MB) and keeps it in the browser's cache storage for later visits. */
-async function fetchModel(onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
+async function fetchModel(onProgress?: (fraction: number) => void, url = MODEL_URL, sha256 = meta.onnx_sha256): Promise<ArrayBuffer> {
+  const CACHE_NAME = `cell-triage-model-${sha256.slice(0, 12)}`;
   let cache: Cache | null = null;
   try {
     cache = await caches.open(CACHE_NAME);
-    const hit = await cache.match(MODEL_URL);
+    const hit = await cache.match(url);
     if (hit) {
       onProgress?.(1);
       return hit.arrayBuffer();
@@ -38,7 +38,7 @@ async function fetchModel(onProgress?: (fraction: number) => void): Promise<Arra
   } catch {
     cache = null;                                     // private windows may refuse cache storage; just download
   }
-  const res = await fetch(MODEL_URL);
+  const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error("Could not download the model. Check your connection and try again.");
   const total = Number(res.headers.get("content-length")) || MODEL_MB * 1024 * 1024;
   const reader = res.body.getReader();
@@ -61,15 +61,23 @@ async function fetchModel(onProgress?: (fraction: number) => void): Promise<Arra
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", buf)))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  if (digest !== meta.onnx_sha256) throw new Error("The downloaded model does not match the expected version.");
+  if (digest !== sha256) throw new Error("The downloaded model does not match the expected version.");
   try {
-    await cache?.put(MODEL_URL, new Response(buf, { headers: { "content-type": "application/octet-stream" } }));
+    await cache?.put(url, new Response(buf, { headers: { "content-type": "application/octet-stream" } }));
   } catch {
     /* storage full or blocked: the model still runs this time */
   }
   onProgress?.(1);
   return buf.buffer;
 }
+
+export async function sessionFrom(url: string, sha256: string, onProgress?: (fraction: number) => void) {
+  const ort = await loadOrt();
+  const model = await fetchModel(onProgress, url, sha256);
+  return ort.InferenceSession.create(model, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+}
+
+export { loadOrt };
 
 export async function getSession(onProgress?: (fraction: number) => void) {
   if (!sessionPromise) {

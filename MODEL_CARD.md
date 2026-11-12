@@ -171,6 +171,17 @@ agreed to 0.0003. Two consequences, both in the code now:
 - any input where a member's |logit| exceeds 25 (`ood_max_abs_logit` in `models/model_meta.json`) is refused as
   `out_of_distribution`, by both `/predict` and `/analyze-smear`, instead of getting a confident-looking number.
 
+### On the website, without a server
+
+The live site (https://mh51401122.vercel.app) runs the whole smear pipeline in the visitor's browser: `segment.py` itself
+runs under Pyodide 0.29.5 (Python 3.13 with numpy, SciPy, scikit-image, OpenCV and Pillow), and the cell-type filter and
+the MH51401122 ensemble run with ONNX Runtime Web. Checked against the Python API on one Taleqani smear:
+
+- PNG input: identical cells, red-cell size (15.3242 px) and lymphoid flags; scores within 0.005 (0.822 / 0.952 / 0.950
+  vs 0.817 / 0.949 / 0.949; same decisions), the small gap coming from OpenCV 4.11 vs 5.0 resizing and colour conversion;
+- JPEG input: Pyodide's Pillow 11.3 decodes JPEG pixels slightly differently from Pillow 13, which moved the red-cell
+  estimate by 5% and changed whether one cell was scored. PNG uploads give the closest match.
+
 ### Outside test: Taleqani Hospital ALL smears
 
 3,216 peripheral-blood smear images (after removing exact copies) from Taleqani Hospital, Tehran (Aria et al. 2021,
