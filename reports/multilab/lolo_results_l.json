@@ -1,0 +1,107 @@
+{
+  "plan": "Three-lab \"leukemic blast vs normal lymphocyte\" data, and leave-one-lab-out training with DinoBloom features.\n\nSources (each has BOTH classes, so the model cannot learn \"which lab\" as a shortcut):\n  cnmc  AIIMS New Delhi (C-NMC 2019)          B-ALL lymphoblasts vs normal B-lymphocytes, patient IDs, already cut out\n  jhu   Johns Hopkins (DeepAPL, Sidhom 2021)   \"Blast, no lineage spec\" vs \"Lymphocyte\", AML/APL patients, CellaVision\n  lmu   LMU Munich (AML-Cytomorphology_LMU,    MYO (myeloblast) vs LYT (typical lymphocyte); no patient IDs\n        Matek 2019, TCIA, CC BY 3.0)\n\nEvery jhu/lmu tile goes through the website's own cell pipeline (red-cell ruler pooled over 300 tiles per source, the\nwhite cell nearest the tile centre cut onto black, colours normalised to C-NMC), so the three labs reach the model in\nthe same form. Crops are saved as 224 px PNGs for later fine-tuning; DinoBloom-B embeddings are cached.\n\nEvaluation plan, fixed before results:\n  * Leave one lab out: train on two labs, test on the third, for each lab in turn.\n  * The classifier's C is chosen by generalisation between the two training labs (train on one, validate on the other,\n    both ways, mean PR-AUC), never on the held-out lab.\n  * Each training lab gets equal total weight; classes balanced within it.\n  * Baseline: the C-NMC-only DinoBloom classifier (reports/foundation) on the same held-out cells.\n  * Held-out C-NMC uses only its 26 test subjects (as in every earlier C-NMC result). 95% intervals resample patients\n    (jhu, cnmc) or cells (lmu, no patient IDs).",
+  "labs": {
+    "cnmc": {
+      "trained_on": [
+        "jhu",
+        "lmu"
+      ],
+      "C_by_cross_lab_validation": {
+        "0.001": 0.9172278376014942,
+        "0.003": 0.9194330506268049,
+        "0.01": 0.9155708500449413,
+        "0.03": 0.9075077873797902,
+        "0.1": 0.9002949241406135,
+        "0.3": 0.8944710196801032
+      },
+      "chosen_C": 0.003,
+      "multilab": {
+        "roc_auc": 0.6755918764403646,
+        "roc_auc_ci95": [
+          0.5324149169523015,
+          0.7751629421854129
+        ],
+        "pr_auc": 0.7785268812543946,
+        "pr_auc_ci95": [
+          0.5442573906994225,
+          0.9042381875305963
+        ],
+        "normal_called_leukemic_at_0.5": 0.14782608695652175,
+        "blasts_caught_at_0.5": 0.3213175885643257,
+        "cells": {
+          "normal": 805,
+          "blast": 1609
+        }
+      },
+      "cnmc_only_baseline": null
+    },
+    "jhu": {
+      "trained_on": [
+        "cnmc",
+        "lmu"
+      ],
+      "C_by_cross_lab_validation": {
+        "0.001": 0.6630703151269874,
+        "0.003": 0.6352101052171351,
+        "0.01": 0.6134877403395642,
+        "0.03": 0.6065355190065764,
+        "0.1": 0.6064291983442301,
+        "0.3": 0.6072257227019169
+      },
+      "chosen_C": 0.001,
+      "multilab": {
+        "roc_auc": 0.9191767643633643,
+        "roc_auc_ci95": [
+          0.8911519083099505,
+          0.9412060280006905
+        ],
+        "pr_auc": 0.9077430221434779,
+        "pr_auc_ci95": [
+          0.8769234352985407,
+          0.9309010085372598
+        ],
+        "normal_called_leukemic_at_0.5": 0.5371263259402121,
+        "blasts_caught_at_0.5": 0.9883879781420765,
+        "cells": {
+          "normal": 3111,
+          "blast": 2928
+        }
+      },
+      "cnmc_only_baseline": null
+    },
+    "lmu": {
+      "trained_on": [
+        "cnmc",
+        "jhu"
+      ],
+      "C_by_cross_lab_validation": {
+        "0.001": 0.5279728011266213,
+        "0.003": 0.5403629373117743,
+        "0.01": 0.5520670904285625,
+        "0.03": 0.5570884846837747,
+        "0.1": 0.5576834801732385,
+        "0.3": 0.5580681814654991
+      },
+      "chosen_C": 0.3,
+      "multilab": {
+        "roc_auc": 0.7122716700819473,
+        "roc_auc_ci95": [
+          0.7004806575338148,
+          0.7235635846183054
+        ],
+        "pr_auc": 0.7100289317165615,
+        "pr_auc_ci95": [
+          0.6943993082383801,
+          0.7250650375146632
+        ],
+        "normal_called_leukemic_at_0.5": 0.2622617534942821,
+        "blasts_caught_at_0.5": 0.5590309720944495,
+        "cells": {
+          "normal": 3935,
+          "blast": 3261
+        }
+      },
+      "cnmc_only_baseline": null
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "taleqani": {
+    "ruler_x1.0_stain": {
+      "smears": 3040,
+      "roc_auc": 0.6202047601555951,
+      "pr_auc": 0.8729840623379441,
+      "benign_called_leukemic_at_0.5": 0.0199203187250996,
+      "all_smears_missed_at_0.5": 0.9700551615445232
+    },
+    "ruler_x1.0_stain_filtered": {
+      "smears": 2942,
+      "roc_auc": 0.6686814865242285,
+      "pr_auc": 0.8852534180870444,
+      "benign_called_leukemic_at_0.5": 0.045454545454545456,
+      "all_smears_missed_at_0.5": 0.9604838709677419
+    },
+    "ruler_x1.0": {
+      "smears": 3040,
+      "roc_auc": 0.642925539763719,
+      "pr_auc": 0.8759786824924704,
+      "benign_called_leukemic_at_0.5": 0.017928286852589643,
+      "all_smears_missed_at_0.5": 0.9806934594168637
+    },
+    "ruler_x1.0_filtered": {
+      "smears": 2942,
+      "roc_auc": 0.6910352080714983,
+      "pr_auc": 0.8887124963901549,
+      "benign_called_leukemic_at_0.5": 0.04329004329004329,
+      "all_smears_missed_at_0.5": 0.9745967741935484
+    }
+  },
+  "paired_vs_deployed_model": {
+    "main_arm_stain_filtered": {
+      "smears": 2674,
+      "auc_old": 0.5670364942563733,
+      "auc_new": 0.7395685750744594,
+      "difference": 0.17253208081808613,
+      "difference_ci95": [
+        0.12539590505375622,
+        0.22121693320447924
+      ]
+    },
+    "stain_unfiltered": {
+      "smears": 3017,
+      "auc_old": 0.6875914215451439,
+      "auc_new": 0.621671297627032,
+      "difference": -0.06592012391811186,
+      "difference_ci95": [
+        -0.10243942938678056,
+        -0.028063583285670025
+      ]
+    }
+  },
+  "bccd_healthy": {
+    "stain": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.2641509433962264
+    },
+    "raw": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.22641509433962265
+    }
+  },
+  "note": "DinoBloom-B frozen + logistic regression; same smears, finder, filter and crops as the deployed model's tests",
+  "classifier": "/kaggle/input/notebooks/haiclop/cell-triage-dinobloom-finetune/dinobloom_b_ft_held_none.pt",
+  "cell_filter": "/tmp/code/reports/multilab/dinobloom_b_filter.joblib",
+  "dinobloom_variant": "b",
+  "fewshot_cutoff": {
+    "ruler_x1.0_stain_filtered": {
+      "k=4": {
+        "sensitivity": 0.6593902340597255,
+        "sensitivity_95": [
+          0.17147901533494755,
+          0.9495661824051654
+        ],
+        "specificity": 0.5677217391304348,
+        "specificity_95": [
+          0.1826086956521739,
+          0.8760869565217392
+        ]
+      },
+      "k=10": {
+        "sensitivity": 0.6967381818181818,
+        "sensitivity_95": [
+          0.24396969696969698,
+          0.9494949494949495
+        ],
+        "specificity": 0.5386695842450766,
+        "specificity_95": [
+          0.17937636761487966,
+          0.8555798687089715
+        ]
+      },
+      "k=20": {
+        "sensitivity": 0.710755060728745,
+        "sensitivity_95": [
+          0.3267004048582996,
+          0.9534514170040486
+        ],
+        "specificity": 0.530137168141593,
+        "specificity_95": [
+          0.15470132743362833,
+          0.8208517699115043
+        ]
+      }
+    },
+    "ruler_x1.0_stain": {
+      "k=4": {
+        "sensitivity": 0.6279826498422713,
+        "sensitivity_95": [
+          0.12327484227129339,
+          0.9566443217665616
+        ],
+        "specificity": 0.5289380000000001,
+        "specificity_95": [
+          0.098,
+          0.8962999999999998
+        ]
+      },
+      "k=10": {
+        "sensitivity": 0.6627129885511251,
+        "sensitivity_95": [
+          0.1128503750493486,
+          0.9538097118041847
+        ],
+        "specificity": 0.49903219315895375,
+        "specificity_95": [
+          0.10256539235412476,
+          0.9095070422535211
+        ]
+      },
+      "k=20": {
+        "sensitivity": 0.6776511075949366,
+        "sensitivity_95": [
+          0.21162974683544303,
+          0.9545787183544303
+        ],
+        "specificity": 0.48707317073170736,
+        "specificity_95": [
+          0.09959349593495935,
+          0.8414634146341463
+        ]
+      }
+    }
+  }
+}

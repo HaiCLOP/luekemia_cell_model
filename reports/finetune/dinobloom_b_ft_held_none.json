@@ -1,0 +1,34 @@
+{
+  "args": {
+    "held": "none",
+    "variant": "b",
+    "blocks": 4,
+    "epochs": 4,
+    "batch": 64,
+    "manifest": "/kaggle/input/datasets/haiclop/cell-triage-multilab-crops/manifest.csv",
+    "out": "/kaggle/working/dinobloom_b_ft_held_none.pt"
+  },
+  "train_cells": 22889,
+  "epochs": [
+    {
+      "epoch": 0,
+      "loss": 0.22274169880969852,
+      "seconds": 150.85918474197388
+    },
+    {
+      "epoch": 1,
+      "loss": 0.16492002526251207,
+      "seconds": 299.5843994617462
+    },
+    {
+      "epoch": 2,
+      "loss": 0.13208057139726245,
+      "seconds": 448.74377942085266
+    },
+    {
+      "epoch": 3,
+      "loss": 0.1130652303914396,
+      "seconds": 597.566873550415
+    }
+  ]
+}

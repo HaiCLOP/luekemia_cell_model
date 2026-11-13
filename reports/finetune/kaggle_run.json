@@ -1,0 +1,21 @@
+{
+  "started": 1794574036.2293909,
+  "runs": {
+    "jhu": {
+      "exit": 0,
+      "minutes": 10.0
+    },
+    "lmu": {
+      "exit": 0,
+      "minutes": 7.5
+    },
+    "cnmc": {
+      "exit": 0,
+      "minutes": 6.3
+    },
+    "none": {
+      "exit": 0,
+      "minutes": 10.1
+    }
+  }
+}

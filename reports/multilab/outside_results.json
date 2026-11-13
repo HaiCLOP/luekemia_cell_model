@@ -1,0 +1,66 @@
+{
+  "taleqani": {
+    "ruler_x1.0_stain": {
+      "smears": 3017,
+      "roc_auc": 0.7186164606687746,
+      "pr_auc": 0.8975920002415472,
+      "benign_called_leukemic_at_0.5": 0.056338028169014086,
+      "all_smears_missed_at_0.5": 0.8984126984126984
+    },
+    "ruler_x1.0_stain_filtered": {
+      "smears": 2705,
+      "roc_auc": 0.7886296046269773,
+      "pr_auc": 0.9414217517910994,
+      "benign_called_leukemic_at_0.5": 0.059006211180124224,
+      "all_smears_missed_at_0.5": 0.8900545530843474
+    },
+    "ruler_x1.0": {
+      "smears": 3017,
+      "roc_auc": 0.7750726581712497,
+      "pr_auc": 0.9213778508786863,
+      "benign_called_leukemic_at_0.5": 0.05835010060362173,
+      "all_smears_missed_at_0.5": 0.8206349206349206
+    },
+    "ruler_x1.0_filtered": {
+      "smears": 2705,
+      "roc_auc": 0.8071067577535492,
+      "pr_auc": 0.9472885833413787,
+      "benign_called_leukemic_at_0.5": 0.08385093167701864,
+      "all_smears_missed_at_0.5": 0.7922786403692824
+    }
+  },
+  "paired_vs_deployed_model": {
+    "main_arm_stain_filtered": {
+      "smears": 2705,
+      "auc_old": 0.5730810633290153,
+      "auc_new": 0.7886296046269773,
+      "difference": 0.21554854129796197,
+      "difference_ci95": [
+        0.15840076373866643,
+        0.265304313832216
+      ]
+    },
+    "stain_unfiltered": {
+      "smears": 3017,
+      "auc_old": 0.6875914215451439,
+      "auc_new": 0.7186164606687746,
+      "difference": 0.03102503912363075,
+      "difference_ci95": [
+        -0.007741298391947424,
+        0.06797601933306315
+      ]
+    }
+  },
+  "bccd_healthy": {
+    "stain": {
+      "cells_after_filter": 22,
+      "called_leukemic_at_0.5": 0.36363636363636365
+    },
+    "raw": {
+      "cells_after_filter": 22,
+      "called_leukemic_at_0.5": 0.45454545454545453
+    }
+  },
+  "note": "DinoBloom-B frozen + logistic regression; same smears, finder, filter and crops as the deployed model's tests",
+  "classifier": "E:\\Luekemia\\reports\\multilab\\dinobloom_b_multilab.joblib"
+}

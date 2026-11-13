@@ -27,14 +27,14 @@ function bytesOf(proxy) {
 }
 
 self.onmessage = async (e) => {
-  const { id, file, umPerPx, stainJson, modelSize, filterSize } = e.data;
+  const { id, file, umPerPx, stainJson, modelSize, filterSize, allCells } = e.data;
   try {
     if (!ready) ready = boot();
     const py = await ready;
     postMessage({ type: "status", text: "Finding white cells in the smear" });
     const data = new Uint8Array(await file.arrayBuffer());
     const analyse = py.globals.get("smear_glue").analyse;
-    const r = analyse(data, umPerPx || 0, stainJson, modelSize, filterSize);
+    const r = analyse(data, umPerPx || 0, stainJson, modelSize, filterSize, !!allCells);
     const get = (k) => r.get(k);
     const toJs = (v) => (v && v.toJs ? v.toJs() : v);
     const out = {

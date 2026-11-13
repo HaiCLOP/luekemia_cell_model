@@ -49,7 +49,7 @@ from src.vision.segment import CNMC_RBC_PX, analyse, find_white_cells, maps, rbc
 from src.progress import Progress
 from src.utils import resolve
 
-BCCD = Path("E:/datasets/bccd")
+BCCD = Path(os.environ.get("BCCD_DIR", "E:/datasets/bccd"))
 TALEQANI_REPO, TALEQANI_FILE = "pritam06/leukemia-cancer-data", "leukemia.zip"
 OUT = resolve("reports/smear")
 
@@ -232,10 +232,11 @@ def _rbc_one(data: bytes) -> float | None:
 def _crops_one(args) -> dict:
     """Worker: find cells in one smear and return, per arm, the crops already resized to the model's input
     size (uint8, the same PIL bilinear resize Model.preprocess does), so only small arrays cross processes."""
-    data, pooled, stain, method, size, arm_names, filter_size = args
+    data, pooled, stain, method, size, arm_names, filter_size, *rest = args
+    lymphoid_only = rest[0] if rest else True     # False: every cell off the edge (a learned filter decides later)
     rgb = np.asarray(Image.open(io.BytesIO(data)).convert("RGB"))
     res = find_white_cells(rgb, method=method, rbc_override=pooled)
-    cells = [c for c in res.cells if c.lymphoid_like and not c.touches_border]
+    cells = [c for c in res.cells if (c.lymphoid_like or not lymphoid_only) and not c.touches_border]
     out = {"cells_found": len(res.cells), "cells_scored": len(cells), "crops": {}}
     for name, mode, mult, use_stain in ARM_SPECS:
         if name not in arm_names:

@@ -1,0 +1,138 @@
+{
+  "data": "DeepAPL (Sidhom et al., npj Precis Oncol 2021), Johns Hopkins, CellaVision DM100; CC BY 4.0",
+  "pooled_red_cell_px": 69.39261088191564,
+  "scale_to_cnmc": 2.2624887290545175,
+  "tiles": {
+    "Blast, no lineage spec": 2948,
+    "Lymphocyte": 3112
+  },
+  "centre_cell_found": {
+    "Blast, no lineage spec": 0.9942333785617368,
+    "Lymphocyte": 1.0
+  },
+  "patients": 94,
+  "arms": {
+    "all": {
+      "cells": {
+        "Blast, no lineage spec": 2931,
+        "Lymphocyte": 3112
+      },
+      "auc_blast_vs_lymphocyte": {
+        "ensemble_roc_auc": 0.16779178386523283,
+        "ensemble_ci95": [
+          0.1260391945445226,
+          0.21841401505860603
+        ],
+        "dinobloom_roc_auc": 0.25110554755959474,
+        "dinobloom_ci95": [
+          0.206895943887819,
+          0.2973236390274257
+        ],
+        "difference_dinobloom_minus_ensemble": 0.08331376369436191,
+        "difference_ci95": [
+          0.02785892265532855,
+          0.13264870230286394
+        ]
+      },
+      "ensemble": {
+        "lymphocytes": {
+          "cells": 3112,
+          "called_leukemic_at_0.5": 0.9900385604113111,
+          "band_normal": 0.003213367609254499,
+          "band_refer": 0.006748071979434447,
+          "band_leukemic": 0.9900385604113111
+        },
+        "blasts": {
+          "cells": 2931,
+          "called_leukemic_at_0.5": 0.9812350733538041,
+          "band_normal": 0.0,
+          "band_refer": 0.018764926646195838,
+          "band_leukemic": 0.9812350733538041
+        },
+        "refused_ood": 0.0
+      },
+      "dinobloom": {
+        "lymphocytes": {
+          "cells": 3112,
+          "called_leukemic_at_0.5": 0.9424807197943444,
+          "band_normal": 0.007712082262210797,
+          "band_refer": 0.04980719794344473,
+          "band_leukemic": 0.9424807197943444
+        },
+        "blasts": {
+          "cells": 2931,
+          "called_leukemic_at_0.5": 0.7601501194131696,
+          "band_normal": 0.03172978505629478,
+          "band_refer": 0.20812009553053565,
+          "band_leukemic": 0.7601501194131696
+        },
+        "refused_ood": 0.0
+      }
+    },
+    "filtered": {
+      "cells": {
+        "Blast, no lineage spec": 232,
+        "Lymphocyte": 1832
+      },
+      "auc_blast_vs_lymphocyte": {
+        "ensemble_roc_auc": 0.2802312340009035,
+        "ensemble_ci95": [
+          0.2061677660365915,
+          0.3529738240061865
+        ],
+        "dinobloom_roc_auc": 0.1882387818099684,
+        "dinobloom_ci95": [
+          0.1224755749511538,
+          0.2602296151642931
+        ],
+        "difference_dinobloom_minus_ensemble": -0.0919924521909351,
+        "difference_ci95": [
+          -0.18076773324046982,
+          0.0022646516684097814
+        ]
+      },
+      "ensemble": {
+        "lymphocytes": {
+          "cells": 1832,
+          "called_leukemic_at_0.5": 0.9983624454148472,
+          "band_normal": 0.0005458515283842794,
+          "band_refer": 0.001091703056768559,
+          "band_leukemic": 0.9983624454148472
+        },
+        "blasts": {
+          "cells": 232,
+          "called_leukemic_at_0.5": 1.0,
+          "band_normal": 0.0,
+          "band_refer": 0.0,
+          "band_leukemic": 1.0
+        },
+        "refused_ood": 0.0
+      },
+      "dinobloom": {
+        "lymphocytes": {
+          "cells": 1832,
+          "called_leukemic_at_0.5": 0.9688864628820961,
+          "band_normal": 0.001091703056768559,
+          "band_refer": 0.030021834061135372,
+          "band_leukemic": 0.9688864628820961
+        },
+        "blasts": {
+          "cells": 232,
+          "called_leukemic_at_0.5": 0.7155172413793104,
+          "band_normal": 0.04310344827586207,
+          "band_refer": 0.2413793103448276,
+          "band_leukemic": 0.7155172413793104
+        },
+        "refused_ood": 0.0
+      }
+    }
+  },
+  "kept_by_shape_rule": {
+    "Blast, no lineage spec": 0.4817468440805186,
+    "Lymphocyte": 0.8823907455012854
+  },
+  "kept_by_learned_filter": {
+    "Blast, no lineage spec": 0.087683384510406,
+    "Lymphocyte": 0.6298200514138818
+  }
+}

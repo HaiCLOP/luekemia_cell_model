@@ -2,3 +2,5 @@
 .next
 node_modules
 public/ort
+public/models
+public/_tmp

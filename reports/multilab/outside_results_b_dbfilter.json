@@ -1,0 +1,146 @@
+{
+  "taleqani": {
+    "ruler_x1.0_stain": {
+      "smears": 3040,
+      "roc_auc": 0.6548447659323305,
+      "pr_auc": 0.879304956988485,
+      "benign_called_leukemic_at_0.5": 0.08964143426294821,
+      "all_smears_missed_at_0.5": 0.876280535855004
+    },
+    "ruler_x1.0_stain_filtered": {
+      "smears": 2942,
+      "roc_auc": 0.739321498394079,
+      "pr_auc": 0.899597813533924,
+      "benign_called_leukemic_at_0.5": 0.1038961038961039,
+      "all_smears_missed_at_0.5": 0.875
+    },
+    "ruler_x1.0": {
+      "smears": 3040,
+      "roc_auc": 0.732414706814978,
+      "pr_auc": 0.911578545065007,
+      "benign_called_leukemic_at_0.5": 0.07768924302788845,
+      "all_smears_missed_at_0.5": 0.8010244286840031
+    },
+    "ruler_x1.0_filtered": {
+      "smears": 2942,
+      "roc_auc": 0.773155809244519,
+      "pr_auc": 0.9159998771722615,
+      "benign_called_leukemic_at_0.5": 0.10173160173160173,
+      "all_smears_missed_at_0.5": 0.7883064516129032
+    }
+  },
+  "paired_vs_deployed_model": {
+    "main_arm_stain_filtered": {
+      "smears": 2674,
+      "auc_old": 0.5670364942563733,
+      "auc_new": 0.8276506002086624,
+      "difference": 0.2606141059522892,
+      "difference_ci95": [
+        0.21412456147979478,
+        0.30691011373296917
+      ]
+    },
+    "stain_unfiltered": {
+      "smears": 3017,
+      "auc_old": 0.6875914215451439,
+      "auc_new": 0.6575883874676631,
+      "difference": -0.030003034077480728,
+      "difference_ci95": [
+        -0.0683566093251304,
+        0.007877941524420022
+      ]
+    }
+  },
+  "bccd_healthy": {
+    "stain": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.2641509433962264
+    },
+    "raw": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.33962264150943394
+    }
+  },
+  "note": "DinoBloom-B frozen + logistic regression; same smears, finder, filter and crops as the deployed model's tests",
+  "classifier": "E:\\Luekemia\\reports\\multilab\\dinobloom_b_multilab.joblib",
+  "cell_filter": "E:\\Luekemia\\reports\\multilab\\dinobloom_b_filter.joblib",
+  "dinobloom_variant": "b",
+  "fewshot_cutoff": {
+    "ruler_x1.0_stain_filtered": {
+      "k=4": {
+        "sensitivity": 0.750452380952381,
+        "sensitivity_95": [
+          0.2251311541565779,
+          0.976594027441485
+        ],
+        "specificity": 0.6171282608695651,
+        "specificity_95": [
+          0.32385869565217396,
+          0.8565760869565218
+        ]
+      },
+      "k=10": {
+        "sensitivity": 0.82112,
+        "sensitivity_95": [
+          0.35913131313131313,
+          0.9793939393939394
+        ],
+        "specificity": 0.5738271334792123,
+        "specificity_95": [
+          0.2975382932166302,
+          0.8030634573304157
+        ]
+      },
+      "k=20": {
+        "sensitivity": 0.8345008097165991,
+        "sensitivity_95": [
+          0.5333603238866397,
+          0.9757085020242915
+        ],
+        "specificity": 0.5723141592920353,
+        "specificity_95": [
+          0.3340154867256637,
+          0.754424778761062
+        ]
+      }
+    },
+    "ruler_x1.0_stain": {
+      "k=4": {
+        "sensitivity": 0.7166309148264985,
+        "sensitivity_95": [
+          0.13785488958990538,
+          0.986218454258675
+        ],
+        "specificity": 0.5138440000000001,
+        "specificity_95": [
+          0.188,
+          0.9060999999999999
+        ]
+      },
+      "k=10": {
+        "sensitivity": 0.7847315436241611,
+        "sensitivity_95": [
+          0.17685550730359256,
+          0.9857876036320569
+        ],
+        "specificity": 0.4715835010060362,
+        "specificity_95": [
+          0.19512072434607647,
+          0.8832997987927566
+        ]
+      },
+      "k=20": {
+        "sensitivity": 0.8169616297468355,
+        "sensitivity_95": [
+          0.19556962025316457,
+          0.9877373417721519
+        ],
+        "specificity": 0.4455508130081301,
+        "specificity_95": [
+          0.18495934959349594,
+          0.8559451219512193
+        ]
+      }
+    }
+  }
+}

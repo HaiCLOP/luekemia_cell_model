@@ -1,0 +1,101 @@
+[{"stream_name":"stdout","time":2.52664366,"data":"cnmc /kaggle/input/datasets/haiclop/cell-triage-multilab-crops/cnmc 12068\n"}
+,{"stream_name":"stdout","time":2.543475653,"data":"jhu /kaggle/input/datasets/haiclop/cell-triage-multilab-crops/jhu 6039\n"}
+,{"stream_name":"stdout","time":2.560590584,"data":"lmu /kaggle/input/datasets/haiclop/cell-triage-multilab-crops/lmu 7196\n"}
+,{"stream_name":"stderr","time":24.752207962,"data":"Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stderr","time":37.389916979,"data":"/tmp/code/src/finetune.py:214: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\n"}
+,{"stream_name":"stderr","time":37.389952509,"data":"Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n"}
+,{"stream_name":"stderr","time":37.389957854,"data":"  tot += float(loss) * len(x)\n"}
+,{"stream_name":"stdout","time":37.390253311,"data":"epoch 0 step 0/263 loss 0.6706 9s\n"}
+,{"stream_name":"stdout","time":100.447809948,"data":"epoch 0 step 100/263 loss 0.3285 72s\n"}
+,{"stream_name":"stdout","time":166.381525931,"data":"epoch 0 step 200/263 loss 0.2926 138s\n"}
+,{"stream_name":"stdout","time":209.346112407,"data":"epoch 1 step 0/263 loss 0.1377 181s\n"}
+,{"stream_name":"stdout","time":250.821099431,"data":"epoch 1 step 100/263 loss 0.2029 222s\n"}
+,{"stream_name":"stdout","time":292.155927428,"data":"epoch 1 step 200/263 loss 0.2076 263s\n"}
+,{"stream_name":"stdout","time":319.234530676,"data":"epoch 2 step 0/263 loss 0.1147 290s\n"}
+,{"stream_name":"stdout","time":360.888532004,"data":"epoch 2 step 100/263 loss 0.1786 332s\n"}
+,{"stream_name":"stdout","time":402.481200821,"data":"epoch 2 step 200/263 loss 0.1744 374s\n"}
+,{"stream_name":"stdout","time":429.615061051,"data":"epoch 3 step 0/263 loss 0.0898 401s\n"}
+,{"stream_name":"stdout","time":470.965323789,"data":"epoch 3 step 100/263 loss 0.1414 442s\n"}
+,{"stream_name":"stdout","time":512.239033946,"data":"epoch 3 step 200/263 loss 0.1458 483s\n"}
+,{"stream_name":"stdout","time":596.520945874,"data":"jhu {\"roc_auc\": 0.9610380186294709, \"roc_auc_ci95\": [0.9437262379484854, 0.9741702298622783], \"pr_auc\": 0.9536256082192505, \"pr_auc_ci95\": [0.9354704383072695, 0.9676504239852834], \"normal_called_leukemic_at_0.5\": 0.4455159112825458, \"blasts_caught_at_0.5\": 0.9935109289617486, \"cells\": {\"normal\": 3111, \"blast\": 2928}}\n"}
+,{"stream_name":"stderr","time":608.959359944,"data":"Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stderr","time":611.849509811,"data":"/tmp/code/src/finetune.py:214: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\n"}
+,{"stream_name":"stderr","time":611.849543005,"data":"Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n"}
+,{"stream_name":"stderr","time":611.849567903,"data":"  tot += float(loss) * len(x)\n"}
+,{"stream_name":"stdout","time":611.850272327,"data":"epoch 0 step 0/245 loss 0.6531 2s\n"}
+,{"stream_name":"stdout","time":654.59530882,"data":"epoch 0 step 100/245 loss 0.3032 45s\n"}
+,{"stream_name":"stdout","time":695.242308496,"data":"epoch 0 step 200/245 loss 0.2688 86s\n"}
+,{"stream_name":"stdout","time":714.818544751,"data":"epoch 1 step 0/245 loss 0.3328 105s\n"}
+,{"stream_name":"stdout","time":756.438351521,"data":"epoch 1 step 100/245 loss 0.1967 147s\n"}
+,{"stream_name":"stdout","time":797.759047317,"data":"epoch 1 step 200/245 loss 0.1945 188s\n"}
+,{"stream_name":"stdout","time":817.430501575,"data":"epoch 2 step 0/245 loss 0.1200 208s\n"}
+,{"stream_name":"stdout","time":858.721538238,"data":"epoch 2 step 100/245 loss 0.1723 249s\n"}
+,{"stream_name":"stdout","time":900.072702657,"data":"epoch 2 step 200/245 loss 0.1630 291s\n"}
+,{"stream_name":"stdout","time":919.728635994,"data":"epoch 3 step 0/245 loss 0.1455 310s\n"}
+,{"stream_name":"stdout","time":961.183919044,"data":"epoch 3 step 100/245 loss 0.1402 352s\n"}
+,{"stream_name":"stdout","time":1002.436136505,"data":"epoch 3 step 200/245 loss 0.1395 393s\n"}
+,{"stream_name":"stdout","time":1054.428927064,"data":"lmu {\"roc_auc\": 0.919055862924314, \"roc_auc_ci95\": [0.9124655844308667, 0.9251421213516053], \"pr_auc\": 0.902615213553807, \"pr_auc_ci95\": [0.8926165644684484, 0.9118328521125345], \"normal_called_leukemic_at_0.5\": 0.04015247776365947, \"blasts_caught_at_0.5\": 0.5798834713278136, \"cells\": {\"normal\": 3935, \"blast\": 3261}}\n"}
+,{"stream_name":"stderr","time":1061.633595384,"data":"Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stderr","time":1064.453197901,"data":"/tmp/code/src/finetune.py:214: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\n"}
+,{"stream_name":"stderr","time":1064.453238016,"data":"Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n"}
+,{"stream_name":"stderr","time":1064.453245199,"data":"  tot += float(loss) * len(x)\n"}
+,{"stream_name":"stdout","time":1064.454361102,"data":"epoch 0 step 0/206 loss 0.6993 2s\n"}
+,{"stream_name":"stdout","time":1106.506710258,"data":"epoch 0 step 100/206 loss 0.1406 44s\n"}
+,{"stream_name":"stdout","time":1147.52330573,"data":"epoch 0 step 200/206 loss 0.1213 85s\n"}
+,{"stream_name":"stdout","time":1150.968416172,"data":"epoch 1 step 0/206 loss 0.0433 89s\n"}
+,{"stream_name":"stdout","time":1192.440751524,"data":"epoch 1 step 100/206 loss 0.0863 130s\n"}
+,{"stream_name":"stdout","time":1233.734679309,"data":"epoch 1 step 200/206 loss 0.0802 172s\n"}
+,{"stream_name":"stdout","time":1237.197714797,"data":"epoch 2 step 0/206 loss 0.0125 175s\n"}
+,{"stream_name":"stdout","time":1278.379132175,"data":"epoch 2 step 100/206 loss 0.0617 216s\n"}
+,{"stream_name":"stdout","time":1319.795999226,"data":"epoch 2 step 200/206 loss 0.0656 258s\n"}
+,{"stream_name":"stdout","time":1323.228581487,"data":"epoch 3 step 0/206 loss 0.0420 261s\n"}
+,{"stream_name":"stdout","time":1364.548621654,"data":"epoch 3 step 100/206 loss 0.0552 302s\n"}
+,{"stream_name":"stdout","time":1405.974404526,"data":"epoch 3 step 200/206 loss 0.0557 344s\n"}
+,{"stream_name":"stdout","time":1435.32127366,"data":"cnmc {\"roc_auc\": 0.6514794498338153, \"roc_auc_ci95\": [0.5083208614533303, 0.7479837415079088], \"pr_auc\": 0.7492055249531, \"pr_auc_ci95\": [0.5145961415827079, 0.8829334228464892], \"normal_called_leukemic_at_0.5\": 0.2124223602484472, \"blasts_caught_at_0.5\": 0.3555003107520199, \"cells\": {\"normal\": 805, \"blast\": 1609}}\n"}
+,{"stream_name":"stderr","time":1445.735631756,"data":"/tmp/code/src/finetune.py:214: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\n"}
+,{"stream_name":"stderr","time":1445.735674865,"data":"Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n"}
+,{"stream_name":"stderr","time":1445.735681993,"data":"  tot += float(loss) * len(x)\n"}
+,{"stream_name":"stdout","time":1445.736034961,"data":"epoch 0 step 0/357 loss 0.6857 2s\n"}
+,{"stream_name":"stdout","time":1488.356596617,"data":"epoch 0 step 100/357 loss 0.2749 45s\n"}
+,{"stream_name":"stdout","time":1529.037231398,"data":"epoch 0 step 200/357 loss 0.2474 86s\n"}
+,{"stream_name":"stdout","time":1570.918704013,"data":"epoch 0 step 300/357 loss 0.2285 128s\n"}
+,{"stream_name":"stdout","time":1595.632644255,"data":"epoch 1 step 0/357 loss 0.0724 152s\n"}
+,{"stream_name":"stdout","time":1636.898513145,"data":"epoch 1 step 100/357 loss 0.1719 194s\n"}
+,{"stream_name":"stdout","time":1678.37216386,"data":"epoch 1 step 200/357 loss 0.1735 235s\n"}
+,{"stream_name":"stdout","time":1719.81277421,"data":"epoch 1 step 300/357 loss 0.1655 276s\n"}
+,{"stream_name":"stdout","time":1744.314300453,"data":"epoch 2 step 0/357 loss 0.1375 301s\n"}
+,{"stream_name":"stdout","time":1785.758035546,"data":"epoch 2 step 100/357 loss 0.1359 342s\n"}
+,{"stream_name":"stdout","time":1827.327492301,"data":"epoch 2 step 200/357 loss 0.1326 384s\n"}
+,{"stream_name":"stdout","time":1868.843925652,"data":"epoch 2 step 300/357 loss 0.1320 426s\n"}
+,{"stream_name":"stdout","time":1893.453256061,"data":"epoch 3 step 0/357 loss 0.1378 450s\n"}
+,{"stream_name":"stdout","time":1934.937013433,"data":"epoch 3 step 100/357 loss 0.1178 492s\n"}
+,{"stream_name":"stdout","time":1976.393499888,"data":"epoch 3 step 200/357 loss 0.1138 533s\n"}
+,{"stream_name":"stdout","time":2017.763288733,"data":"epoch 3 step 300/357 loss 0.1116 574s\n"}
+,{"stream_name":"stdout","time":2042.800103597,"data":"{\n"}
+,{"stream_name":"stdout","time":2042.800166904,"data":"  \"started\": 1794574036.2293909,\n"}
+,{"stream_name":"stdout","time":2042.800175962,"data":"  \"runs\": {\n"}
+,{"stream_name":"stdout","time":2042.800182219,"data":"    \"jhu\": {\n"}
+,{"stream_name":"stdout","time":2042.800187765,"data":"      \"exit\": 0,\n"}
+,{"stream_name":"stdout","time":2042.800193223,"data":"      \"minutes\": 10.0\n"}
+,{"stream_name":"stdout","time":2042.80019906,"data":"    },\n"}
+,{"stream_name":"stdout","time":2042.800203829,"data":"    \"lmu\": {\n"}
+,{"stream_name":"stdout","time":2042.800208937,"data":"      \"exit\": 0,\n"}
+,{"stream_name":"stdout","time":2042.800213846,"data":"      \"minutes\": 7.5\n"}
+,{"stream_name":"stdout","time":2042.800218891,"data":"    },\n"}
+,{"stream_name":"stdout","time":2042.800224039,"data":"    \"cnmc\": {\n"}
+,{"stream_name":"stdout","time":2042.800229206,"data":"      \"exit\": 0,\n"}
+,{"stream_name":"stdout","time":2042.800233838,"data":"      \"minutes\": 6.3\n"}
+,{"stream_name":"stdout","time":2042.80023905,"data":"    },\n"}
+,{"stream_name":"stdout","time":2042.800243749,"data":"    \"none\": {\n"}
+,{"stream_name":"stdout","time":2042.800248756,"data":"      \"exit\": 0,\n"}
+,{"stream_name":"stdout","time":2042.8002534,"data":"      \"minutes\": 10.1\n"}
+,{"stream_name":"stdout","time":2042.800258513,"data":"    }\n"}
+,{"stream_name":"stdout","time":2042.800268347,"data":"  }\n"}
+,{"stream_name":"stdout","time":2042.800273477,"data":"}\n"}
+,{"stream_name":"stderr","time":2044.994170968,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":2044.994218652,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":2045.285588287,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":2045.285621082,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":2046.108042795,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":2047.18405277,"data":"[NbConvertApp] Writing 299553 bytes to __results__.html\n"}
+]

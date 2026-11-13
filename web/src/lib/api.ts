@@ -122,10 +122,14 @@ export interface SmearResponse {
 
 export const SMEAR_MAX_BYTES = 10 * 1024 * 1024;
 
-export async function analyzeSmear(file: File, umPerPx?: number): Promise<SmearResponse> {
+/** Which single-cell scorer reads the cells a smear yields. */
+export type SmearModel = "ensemble" | "dinobloom";
+
+export async function analyzeSmear(file: File, umPerPx?: number, model: SmearModel = "ensemble"): Promise<SmearResponse> {
   const body = new FormData();
   body.append("file", file);
   if (umPerPx) body.append("um_per_px", String(umPerPx));
+  body.append("model", model);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/analyze-smear`, { method: "POST", body });

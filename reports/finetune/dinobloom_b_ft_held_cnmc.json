@@ -1,0 +1,52 @@
+{
+  "args": {
+    "held": "cnmc",
+    "variant": "b",
+    "blocks": 4,
+    "epochs": 4,
+    "batch": 64,
+    "manifest": "/kaggle/input/datasets/haiclop/cell-triage-multilab-crops/manifest.csv",
+    "out": "/kaggle/working/dinobloom_b_ft_held_cnmc.pt"
+  },
+  "train_cells": 13235,
+  "epochs": [
+    {
+      "epoch": 0,
+      "loss": 0.120386639040289,
+      "seconds": 87.30786395072937
+    },
+    {
+      "epoch": 1,
+      "loss": 0.07943848407718813,
+      "seconds": 173.53761744499207
+    },
+    {
+      "epoch": 2,
+      "loss": 0.06658130084182524,
+      "seconds": 259.615802526474
+    },
+    {
+      "epoch": 3,
+      "loss": 0.056001950202292754,
+      "seconds": 345.7923674583435
+    }
+  ],
+  "held_out": {
+    "roc_auc": 0.6514794498338153,
+    "roc_auc_ci95": [
+      0.5083208614533303,
+      0.7479837415079088
+    ],
+    "pr_auc": 0.7492055249531,
+    "pr_auc_ci95": [
+      0.5145961415827079,
+      0.8829334228464892
+    ],
+    "normal_called_leukemic_at_0.5": 0.2124223602484472,
+    "blasts_caught_at_0.5": 0.3555003107520199,
+    "cells": {
+      "normal": 805,
+      "blast": 1609
+    }
+  }
+}

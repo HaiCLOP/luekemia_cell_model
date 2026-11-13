@@ -101,20 +101,31 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
     stain = _stain_target(str(model.dir))
     if stain is None:
         warnings.append("C-NMC colour statistics missing on this server; cells were scored in their original colours.")
+    own_filter = getattr(model, "has_filter", False)    # DinoBloom-B-3lab: every cell off the edge, its own filter decides
     crops, idx = [], []
     for i, c in enumerate(res.cells):
-        if c.lymphoid_like and not c.touches_border:
+        if (c.lymphoid_like or own_filter) and not c.touches_border:
             crops.append(to_cnmc(rgb, c, res.scale, mode="ruler" if res.scale else "fit", stain=stain))
             idx.append(i)
     probs, ood, dropped = {}, set(), set()
-    keep = _filter_keep(str(model.dir), crops)
-    if keep is not None:
+    logits = None
+    if own_filter and crops:
+        xs = np.concatenate([model.preprocess(Image.fromarray(cr))[0] for cr in crops], axis=0)
+        z, keep = model.logits_and_keep(xs)
         dropped = {i for i, k in zip(idx, keep) if not k}
-        crops = [c for c, k in zip(crops, keep) if k]
         idx = [i for i, k in zip(idx, keep) if k]
+        logits = z[keep][:, None]
+        crops = []
+    elif not own_filter:
+        keep = _filter_keep(str(model.dir), crops)
+        if keep is not None:
+            dropped = {i for i, k in zip(idx, keep) if not k}
+            crops = [c for c, k in zip(crops, keep) if k]
+            idx = [i for i, k in zip(idx, keep) if k]
     if crops:
         xs = np.concatenate([model.preprocess(Image.fromarray(cr))[0] for cr in crops], axis=0)
-        logits, _ = model.session.run(None, {"image": xs})
+        logits = model.cell_logits(xs)
+    if logits is not None:
         for i, l in zip(idx, logits):
             if float(np.abs(l).max()) > model.ood_logit:
                 ood.add(i)
@@ -130,7 +141,8 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
         else:
             p, d = None, "not_scored"
             reason = ("out of distribution: the model's internal scores were far outside their normal range" if i in ood
-                      else "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes" if i in dropped
+                      else ("not a lymphocyte or blast according to the cell filter (neutrophil, monocyte or other cell)" if own_filter
+                            else "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes") if i in dropped
                       else "touches the image edge" if c.touches_border
                       else "not lymphoid-like (lobed or irregular nucleus); the model only knows lymphocytes")
         decisions.append(d)

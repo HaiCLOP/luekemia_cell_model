@@ -23,13 +23,16 @@ export default function SmearPage() {
       <aside className="smear-caveat" aria-labelledby="caveat-title">
         <h2 id="caveat-title" className="eyebrow">Experimental · read before trusting a verdict</h2>
         <p>
-          The cell finder works well: it found 99.7% of white cells on 364 BCCD smears. The classifier behind it does not travel.
-          It learned from one lab&rsquo;s images. A second network now skips neutrophils and other non-lymphocytes, and on the
-          lymphocytes that remain, smears from another hospital are separated barely better than chance (ROC-AUC 0.57; 79% of
-          benign smears called leukemic). A retrained, blur-tolerant version did worse, so it is not used. The cell-type filter
-          has the same weakness: sample B below is a normal lymphocyte from a healthy donor, and the filter wrongly skips it, so
-          you will get &ldquo;no scorable cells&rdquo;. Expect refusals and wrong answers on smears from other labs; that is what
-          this page exists to show. Full figures are in the smear section of the model card.
+          The cell finder works well: it found 99.7% of white cells on 364 BCCD smears. The hard part is reading the cells on
+          smears from a lab the model never saw. The five-network ensemble learned from one lab and barely beats chance on
+          another hospital&rsquo;s leukemia smears (ROC-AUC 0.57; 79% of benign smears called leukemic), and its cell filter
+          skips the healthy lymphocyte in sample B below, so you will get &ldquo;no scorable cells&rdquo;. The DinoBloom option
+          was trained on three labs (New Delhi, Johns Hopkins, Munich) and has its own cell filter: on the same outside smears
+          it reaches 0.83, and calls 26% of healthy-donor lymphocytes leukemic instead of 100%. Sample B is one of those 26%:
+          DinoBloom reads it and wrongly calls it leukemic (score 0.55, just over the line). That is better, not good. Its
+          scores run low on a lab it has not seen, so a fixed cut-off misses most leukemia smears there; a new lab would need
+          to set its own cut-off on a few smears it has already diagnosed. Expect refusals and wrong answers; that is what this
+          page exists to show. Full figures are in the smear section of the model card.
         </p>
       </aside>
       {RUN_IN_BROWSER && (

@@ -37,3 +37,16 @@ Thumbs.db
 
 # smear development overlays and run logs
 reports/smear/_*
+
+# private outreach drafts (emails to labs)
+outreach/
+
+# trained classifier weights and bulky per-cell / per-smear arrays from the DinoBloom and multi-lab experiments
+reports/foundation/*.joblib
+reports/multilab/*.joblib
+reports/multilab/manifest*.csv
+reports/multilab/*.npz
+reports/deepapl/cells.csv
+reports/finetune/**/*.npz
+reports/finetune/*.npy
+reports/finetune/*.pt

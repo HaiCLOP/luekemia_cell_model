@@ -1,0 +1,65 @@
+{
+  "taleqani": {
+    "ruler_x1.0_stain": {
+      "smears": 3017,
+      "roc_auc": 0.762539522851394,
+      "pr_auc": 0.9296690921740399,
+      "benign_called_leukemic_at_0.5": 0.12474849094567404,
+      "all_smears_missed_at_0.5": 0.5900793650793651
+    },
+    "ruler_x1.0_stain_filtered": {
+      "smears": 2705,
+      "roc_auc": 0.6312532091966127,
+      "pr_auc": 0.9030067946556244,
+      "benign_called_leukemic_at_0.5": 0.38198757763975155,
+      "all_smears_missed_at_0.5": 0.4800671422576584
+    },
+    "ruler_x1.0": {
+      "smears": 3017,
+      "roc_auc": 0.7499984031171154,
+      "pr_auc": 0.9190322230384006,
+      "benign_called_leukemic_at_0.5": 0.08651911468812877,
+      "all_smears_missed_at_0.5": 0.7321428571428571
+    },
+    "ruler_x1.0_filtered": {
+      "smears": 2705,
+      "roc_auc": 0.656710446407394,
+      "pr_auc": 0.9004371600002531,
+      "benign_called_leukemic_at_0.5": 0.2608695652173913,
+      "all_smears_missed_at_0.5": 0.6118338229122954
+    }
+  },
+  "paired_vs_deployed_model": {
+    "main_arm_stain_filtered": {
+      "smears": 2705,
+      "auc_old": 0.5730810633290153,
+      "auc_new": 0.6312532091966127,
+      "difference": 0.058172145867597336,
+      "difference_ci95": [
+        0.015624950821604934,
+        0.10221806152612337
+      ]
+    },
+    "stain_unfiltered": {
+      "smears": 3017,
+      "auc_old": 0.6875914215451439,
+      "auc_new": 0.762539522851394,
+      "difference": 0.07494810130625018,
+      "difference_ci95": [
+        0.047882709090622505,
+        0.10198489472222813
+      ]
+    }
+  },
+  "bccd_healthy": {
+    "stain": {
+      "cells_after_filter": 22,
+      "called_leukemic_at_0.5": 0.8636363636363636
+    },
+    "raw": {
+      "cells_after_filter": 22,
+      "called_leukemic_at_0.5": 0.6818181818181818
+    }
+  },
+  "note": "DinoBloom-B frozen + logistic regression; same smears, finder, filter and crops as the deployed model's tests"
+}

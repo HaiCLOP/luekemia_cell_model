@@ -38,10 +38,10 @@ class Prediction:
 
 
 class Model:
-    def __init__(self, model_dir: str | Path):
+    def __init__(self, model_dir: str | Path, meta_file: str = "model_meta.json"):
         model_dir = Path(model_dir)
         self.dir = model_dir
-        self.meta = json.loads((model_dir / "model_meta.json").read_text())
+        self.meta = json.loads((model_dir / meta_file).read_text())
         self._verify(model_dir)
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -79,6 +79,10 @@ class Model:
         x = np.asarray(rgb, dtype=np.float32).transpose(2, 0, 1) / 255.0
         x = (x - self.mean) / self.std
         return x[None].astype(np.float32), rgb
+
+    def cell_logits(self, xs: np.ndarray) -> np.ndarray:
+        """[N, 3, size, size] -> [N, members] logits (the heatmap output is dropped)."""
+        return self.session.run(None, {"image": xs})[0]
 
     def decide(self, p_cal: float) -> str:
         if p_cal < self.t_low:
@@ -118,3 +122,29 @@ class Model:
             max_abs_logit=float(np.abs(logits[0]).max()),
             heatmap_png_base64=hm, latency_ms=int(round((time.perf_counter() - t0) * 1000)),
         )
+
+
+class FoundationModel(Model):
+    """DinoBloom-B (frozen, MarrLab) with linear heads in one ONNX graph (`python -m src.multilab export_web`): `logit`
+    (blast vs normal, trained on three labs) and, when present, `keep_logit` (its own cell filter, which then replaces
+    the shape rule and the separate ONNX filter). Used for smears only; it has no heatmap output."""
+
+    META = "dinobloom_meta.json"
+
+    def __init__(self, model_dir: str | Path):
+        super().__init__(model_dir, self.META)
+        self.outputs = [o.name for o in self.session.get_outputs()]
+        self.has_filter = "keep_logit" in self.outputs
+        self.keep_logit_threshold = float(self.meta.get("filter_threshold_logit", 0.0))
+
+    def logits_and_keep(self, xs: np.ndarray, batch: int = 32) -> tuple[np.ndarray, np.ndarray | None]:
+        zs, ks = [], []
+        for i in range(0, len(xs), batch):
+            out = dict(zip(self.outputs, self.session.run(None, {"image": xs[i:i + batch]})))
+            zs.append(out["logit"])
+            if self.has_filter:
+                ks.append(out["keep_logit"])
+        return np.concatenate(zs), (np.concatenate(ks) >= self.keep_logit_threshold) if self.has_filter else None
+
+    def cell_logits(self, xs: np.ndarray) -> np.ndarray:
+        return self.logits_and_keep(xs)[0][:, None]

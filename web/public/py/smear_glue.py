@@ -13,7 +13,9 @@ RBC_UM = 7.5
 MAX_SIDE = 2048
 
 
-def analyse(data: bytes, um_per_px: float, stain_json: str, model_size: int, filter_size: int) -> dict:
+def analyse(data: bytes, um_per_px: float, stain_json: str, model_size: int, filter_size: int, all_cells: bool = False) -> dict:
+    """all_cells: crop every cell off the image edge (the DinoBloom model has its own cell filter); otherwise only
+    lymphoid-looking cells, which the ensemble's separate ONNX filter then checks."""
     stain = json.loads(stain_json)
     img = ImageOps.exif_transpose(Image.open(io.BytesIO(bytes(data))))
     rgb = np.asarray(img.convert("RGB"))
@@ -27,7 +29,7 @@ def analyse(data: bytes, um_per_px: float, stain_json: str, model_size: int, fil
         override, source = RBC_UM / (um_per_px * shrink), "um_per_px"
     res = find_white_cells(rgb, rbc_override=override)
 
-    scored = [i for i, c in enumerate(res.cells) if c.lymphoid_like and not c.touches_border]
+    scored = [i for i, c in enumerate(res.cells) if (c.lymphoid_like or all_cells) and not c.touches_border]
     full = [to_cnmc(rgb, res.cells[i], res.scale, mode="ruler" if res.scale else "fit", stain=stain) for i in scored]
     crops = np.stack([np.asarray(Image.fromarray(f).convert("RGB").resize((model_size, model_size), Image.BILINEAR)) for f in full]) \
         if full else np.zeros((0, model_size, model_size, 3), np.uint8)

@@ -12,6 +12,7 @@ import io
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -25,7 +26,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from api.db import Database
-from api.inference import Model
+from api.inference import FoundationModel, Model
 from api.quality import check as check_input
 from api.schemas import (DISCLAIMER, Band, FeedbackRequest, FeedbackResponse, HealthResponse, ModelCard,
                          PredictResponse, SmearResponse)
@@ -187,7 +188,8 @@ SMEAR_MAX_BYTES = 10 * 1024 * 1024
 @limiter.limit(os.getenv("SMEAR_RATE_LIMIT", "10/minute"))
 async def analyze_smear(request: Request, file: UploadFile = File(...),
                         um_per_px: float | None = Form(None, gt=0.01, lt=5.0),
-                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000)):
+                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000),
+                        model: Literal["ensemble", "dinobloom"] = Form("ensemble")):
     """Find white cells in a stained peripheral-blood smear image, score each lymphoid-like cell with the
     single-cell model after putting it on C-NMC scale, and summarise. Nothing is stored."""
     data = await file.read(SMEAR_MAX_BYTES + 1)
@@ -206,9 +208,19 @@ async def analyze_smear(request: Request, file: UploadFile = File(...),
         raise HTTPException(415, f"Unsupported image type {fmt}. Use PNG, JPEG or BMP.")
     if min(img.size) < 128:
         raise InputRejected("insufficient_image_quality", "A smear image should be at least 128 x 128 px.")
+    scorer = state["model"] if model == "ensemble" else await run_in_threadpool(_foundation)
     async with _infer_slots:
-        out = await run_in_threadpool(analyse_smear, state["model"], img, um_per_px, rbc_diameter_px)
+        out = await run_in_threadpool(analyse_smear, scorer, img, um_per_px, rbc_diameter_px)
     return out
+
+
+def _foundation() -> FoundationModel:
+    """DinoBloom is loaded on first use only (about 90 MB of weights, about 350 MB in memory)."""
+    if "foundation" not in state:
+        if not (MODEL_DIR / FoundationModel.META).exists():
+            raise HTTPException(503, "The DinoBloom model is not installed on this server.")
+        state["foundation"] = FoundationModel(MODEL_DIR)
+    return state["foundation"]
 
 
 @app.post("/feedback", response_model=FeedbackResponse)

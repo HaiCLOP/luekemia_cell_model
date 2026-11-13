@@ -259,6 +259,156 @@ is not blur or colour but biology and source: Taleqani's benign smears are full 
 and its cells come from a different camera at about a ninth of C-NMC's resolution. The next step that could actually
 help is training data from more than one lab, with patient-level splits, rather than more augmentation of one lab.
 
+### Second smear model: DinoBloom + a linear classifier (selectable on the Smear page)
+
+Suggested by Dr Carsten Marr (Helmholtz Munich). DinoBloom-B (Koch et al., MICCAI 2024; MarrLab/DinoBloom, Apache-2.0) is
+a DINOv2 ViT-B/14 trained on 13 public blood and bone-marrow datasets. It is used frozen; only a standardised L2 logistic
+regression is trained on its 768-number embedding of each C-NMC training cell, with C chosen on validation PR-AUC
+(`src/foundation.py`, plan fixed before results). Calibration: temperature 1.12; band 0.15 to 0.50, chosen on validation
+by the same rule as the deployed model. For the website it is exported as one ONNX graph with 8-bit weight-only
+quantisation (94 MB; mean probability change 0.004 against full precision on 400 validation cells; dynamic int8 was
+tried first and broke it).
+
+| | Ensemble (deployed) | DinoBloom + LR |
+|---|---|---|
+| C-NMC test PR-AUC (26 subjects, cells) | **0.932** | 0.858 |
+| C-NMC test, healthy subjects flagged (mean cell score > 0.5) | **3/13** | 7/13 |
+| Taleqani smear ROC-AUC, colour-normalised + filter | 0.573 | **0.631** |
+| Taleqani smear ROC-AUC, colour-normalised, no filter | 0.688 | **0.763** |
+| Taleqani benign smears called leukemic at 0.5 (+ filter) | 79% | **38%** |
+| Taleqani ALL smears missed at 0.5 (+ filter) | not recorded | 48% |
+| BCCD healthy lymphocytes called leukemic (22 cells, after filter) | 100% | **86%** |
+
+Paired Taleqani ROC-AUC difference (same 2,705 smears): **+0.058 (0.016 to 0.102)**; without the filter +0.075 (0.048
+to 0.102). So the frozen foundation model gives up accuracy on C-NMC and gains some on another hospital's smears, which
+is what a less lab-specific representation should do. It is still far from usable: at 0.63 it misses about half the
+ALL smears and still calls most healthy BCCD lymphocytes leukemic. Both models are offered on the Smear page so the
+difference can be seen; the single-cell page keeps the ensemble. Results: `reports/foundation/`.
+
+### Outside test: Johns Hopkins CellaVision cells (DeepAPL)
+
+Data: Sidhom, ..., Shenderov, *npj Precision Oncology* 5:38 (2021), CC BY 4.0. 106 AML/APL patients, Wright stain,
+CellaVision DM100, every cell labelled by a pathologist. 3,112 cells labelled "Lymphocyte" (should read normal) and
+2,948 "Blast, no lineage spec" (myeloid blasts, not the B-lymphoblasts either model was trained on). Each tile went
+through the website's own pipeline (`src/deepapl_eval.py`; plan fixed before results): red-cell ruler pooled over 300
+tiles, the centre cell cut onto black, colours normalised to C-NMC.
+
+| All 6,043 cells found | Ensemble | DinoBloom + LR |
+|---|---|---|
+| ROC-AUC, blast vs lymphocyte (95% CI, resampling patients) | 0.17 (0.13 to 0.22) | 0.25 (0.21 to 0.30) |
+| Normal lymphocytes called leukemic at 0.5 | 99.0% | 94.2% |
+| Blasts called leukemic at 0.5 | 98.1% | 76.0% |
+
+**Negative result, and the strongest one so far.** Both models call almost every Hopkins lymphocyte leukemic, and both
+rank the lymphocytes as *more* leukemic than the blasts (AUC well below 0.5). After the cell-type filter (which keeps
+63% of lymphocytes but only 9% of blasts) the picture is the same (0.28 and 0.19). A model that learned "leukemic vs
+normal" from one lab's cells has learned that lab's normal cells, not what makes a cell normal. This is the motivation
+for the multi-lab training in `src/multilab.py`. Results: `reports/deepapl/`.
+
+### Experiment: three labs, leave one lab out (blast vs normal lymphocyte)
+
+`src/multilab.py`, plan fixed before results. Task widened to "leukemic blast vs normal lymphocyte" so that AML
+datasets count. Three labs, each with both classes: C-NMC (AIIMS Delhi; B-ALL blasts 8,043, normal B-lymphocytes
+4,025), Johns Hopkins (DeepAPL; blasts 2,928, lymphocytes 3,111) and LMU Munich (AML-Cytomorphology_LMU, Matek 2019,
+CC BY 3.0; myeloblasts 3,261, typical lymphocytes 3,935). Hopkins and Munich tiles go through the website's crop
+pipeline, so all three labs reach the model the same way. Model: frozen DinoBloom-B + logistic regression, every
+(lab, class) group given equal weight. C is chosen by training on one training lab and validating on the other, never
+on the held-out lab. C-NMC is only ever tested on its 26 test subjects.
+
+| Held-out lab | Trained on | ROC-AUC (95% CI) | Normal called leukemic at 0.5 | Blasts caught at 0.5 | C-NMC-only model, same cells |
+|---|---|---|---|---|---|
+| Johns Hopkins | C-NMC + Munich | **0.940** (0.913 to 0.960) | 35% | 97% | 0.252, 94% normal called leukemic |
+| LMU Munich | C-NMC + Hopkins | **0.831** (0.820 to 0.840) | 16% | 67% | 0.447, 95% normal called leukemic |
+| C-NMC (B-ALL) | Hopkins + Munich | 0.652 (0.524 to 0.750) | 11% | 20% | n/a |
+
+Adding a second lab with both classes changed an inverted, useless model into a usable one on the unseen lab. What it
+does not show: Hopkins and Munich blasts are both myeloid, so their two folds partly test "myeloid blast vs lymphocyte"
+learned from the other myeloid lab. The C-NMC fold is the honest test for ALL: trained without a single lymphoblast it
+ranks B-ALL blasts above normal B-cells only modestly (0.65) and catches 20% at 0.5. B-lymphoblasts look much more like
+lymphocytes than myeloblasts do; ALL needs lymphoblasts from more than one lab. Munich has no patient IDs, so its
+interval resamples cells and is too narrow. Results: `reports/multilab/`.
+
+**All three labs, tested on a fourth.** One classifier on all three labs (C chosen by mean held-out-lab PR-AUC: 0.001),
+then the same Taleqani (Tehran, real ALL) and BCCD tests as every earlier model, same smears, finder, filter and crops:
+
+| Taleqani smears, colour-normalised + filter (2,705 smears) | Deployed ensemble | DinoBloom, C-NMC only | **DinoBloom, three labs** |
+|---|---|---|---|
+| Smear ROC-AUC | 0.573 | 0.631 | **0.789** |
+| Benign smears called leukemic at 0.5 | 79% | 38% | **6%** |
+| ALL smears missed at 0.5 | | 48% | 89% |
+| BCCD healthy lymphocytes called leukemic (22 cells) | 100% | 86% | **36%** |
+
+Paired against the deployed model on the same 2,705 smears: **+0.216 (0.158 to 0.265)**. Without the filter the gain is
++0.031 (-0.008 to 0.068). This is the best outside result of any model so far, on a lab and a disease subtype (real ALL)
+it never saw labelled. The ranking is good but the scale is not: at 0.5 it calls almost nothing leukemic in Tehran's
+smears. A new lab needs its own threshold, set on a few of its own labelled smears, before any verdict means anything.
+
+### Three follow-ups: a multi-lab cell filter, DinoBloom-L, and a few-shot cut-off
+
+**Cell filter on DinoBloom features** (`src.multilab others / filter_lolo / filter_final`). Keep = lymphocytes and blasts;
+drop = neutrophils, monocytes, eosinophils, basophils, erythroblasts, smudge cells, myelocytes, metamyelocytes and
+immature granulocytes from Hopkins, Munich and Barcelona (PBC, CC BY 4.0), up to 500 per lab and type. Promyelocytes
+(the leukemic cells of APL), promonocytes, plasma cells and atypical lymphocytes are left out of training. Cut-off: keep
+>= 98% of keep cells in every training lab. Leave one lab out, against the deployed ONNX filter on the same crops:
+
+| Unseen lab | Blasts kept | Normal lymphocytes kept | Most-passed wrong cell |
+|---|---|---|---|
+| Johns Hopkins | **90%** (old 9%) | **95%** (old 64%) | myelocytes 64%, smudge 46%, monocytes 34% (old under 13%) |
+| LMU Munich | **89%** (old 67%) | **91%** (old 71%) | smudge 69% (13 cells), monocytes 19% (old 20%) |
+| Barcelona (PBC) | n/a | 98% (old 97%) | erythroblasts 12%, immature granulocytes 11% (old under 2%) |
+
+It keeps the cells that matter far better; the price is more monocytes, myelocytes and smudge cells let through.
+
+**Taleqani and BCCD with the new filter** (it replaces both the shape rule and the ONNX filter; every cell off the
+image edge is offered to it). Three-lab DinoBloom-B classifier:
+
+| | Shape rule + old filter | **DinoBloom filter** |
+|---|---|---|
+| Taleqani smears that get a score | 2,705 | 2,942 |
+| ROC-AUC on the 2,705 smears both can score, paired vs the deployed model (0.567) | 0.789 | **0.828** (+0.261, 0.214 to 0.307) |
+| ROC-AUC on every smear it scores | 0.789 | 0.739 |
+| BCCD healthy lymphocytes called leukemic | 36% of 22 | **26% of 53** |
+
+Better on the same smears, and it now scores 237 more. Those extra smears (where the shape rule found no lymphoid
+cell) are read poorly and pull the all-smear figure down: a smear whose only "kept" cells are borderline should be
+refused, not scored. Not yet done.
+
+**DinoBloom-L** (1,024 features) instead of -B, same leave-one-lab-out protocol: C-NMC 0.676 (B 0.652), Hopkins 0.919
+(B 0.940), Munich 0.712 (B 0.831). Worse on two of three labs; the larger model is not used.
+
+**Few-shot cut-off for a new lab.** With k of Taleqani's smears labelled (half benign, half ALL; 1,000 random draws), the
+cut-off is set on those and judged on the rest (main arm, DinoBloom filter):
+
+| Labelled smears | Sensitivity (95% range over draws) | Specificity |
+|---|---|---|
+| 4 | 75% (23 to 98) | 62% (32 to 86) |
+| 10 | 82% (36 to 98) | 57% (30 to 80) |
+| 20 | 83% (53 to 98) | 57% (33 to 75) |
+
+Ten labelled smears turn "misses 88% of ALL smears at 0.5" into "catches about 82%", but at a specificity near 57%
+and with wide luck-of-the-draw. With a ranking of 0.74 to 0.83, no cut-off is both sensitive and specific. Results:
+`reports/multilab/`.
+
+### Fine-tuning DinoBloom's last blocks (Kaggle T4): better on myeloid labs, worse on ALL
+
+`src/finetune.py`, recipe fixed before results: last 4 of 12 blocks + final norm trainable, linear head from zero, AdamW
+(1e-5 backbone, 1e-3 head), 4 epochs, cosine, fp16, flips / 90-degree turns / +-15% zoom / mild colour and blur
+jitter, equal weight per (lab, class). No early stopping on any held-out lab. Run privately on Kaggle (code
+`haiclop/cell-triage-dinobloom-finetune`, data a private copy of the 224 px crops), 34 GPU-minutes for four runs.
+
+| | Fine-tuned | Frozen DinoBloom + LR |
+|---|---|---|
+| Leave one lab out: Johns Hopkins ROC-AUC | **0.961** | 0.940 |
+| Leave one lab out: LMU Munich | **0.919** | 0.831 |
+| Leave one lab out: C-NMC (B-ALL) | 0.651 | 0.652 |
+| Taleqani (real ALL), DinoBloom filter, all 2,942 smears | 0.669 | **0.739** |
+| Taleqani, paired on the deployed model's 2,705 smears (deployed 0.567) | 0.740 | **0.828** |
+| BCCD healthy lymphocytes called leukemic (53 cells) | 26% | 26% |
+
+Fine-tuning sharpened "myeloid blast vs lymphocyte" (the two labs that supply only myeloid blasts improved) and lost
+some of what carries over to lymphoblasts in a lab it never saw. It is not used. The best model remains frozen
+DinoBloom-B + three-lab logistic regression + the DinoBloom cell filter. Results: `reports/finetune/`.
+
 ## Experiment: ALL vs AML vs normal (not deployed)
 
 `src/vision/multiclass.py`. Three classes from two public datasets: C-NMC (normal cells and B-ALL blasts) and the Munich

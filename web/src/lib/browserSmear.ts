@@ -1,15 +1,31 @@
 // Smear analysis entirely in the browser. Mirrors api/smear.py:
 //   Python cell finder (src/vision/segment.py, run by Pyodide in a web worker) -> C-NMC-style crops
-//   -> learned cell-type filter (ONNX) -> MH51401122 ensemble (ONNX) with the out-of-distribution guard
+//   -> learned cell-type filter (ONNX) -> the chosen scorer (ONNX) with the out-of-distribution guard
 //   -> calibration and band -> smear summary and an annotated overlay.
+// Two scorers, both reading the same 224 px crops:
+//   ensemble   MH51401122 (fine-tuned on C-NMC); lymphoid-looking cells only, checked by the separate ONNX cell filter
+//   dinobloom  DinoBloom-B-3lab: frozen DinoBloom with two linear heads in one graph, a blast-vs-normal classifier trained
+//              on three labs and its own cell filter; every cell off the image edge is offered to it.
 import ctMeta from "@/data/cell_type_meta.json";
-import meta from "@/data/model_meta.json";
+import dinoMeta from "@/data/dinobloom_meta.json";
+import ensMeta from "@/data/model_meta.json";
 import stain from "@/data/cnmc_stain.json";
-import type { Decision, SmearCell, SmearResponse } from "@/lib/api";
+import type { Decision, SmearCell, SmearModel, SmearResponse } from "@/lib/api";
 import { getSession, loadOrt, sessionFrom } from "@/lib/browserModel";
 
 const FILTER_URL =
   process.env.NEXT_PUBLIC_FILTER_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/cell_type_filter.onnx";
+export const DINOBLOOM_URL =
+  process.env.NEXT_PUBLIC_DINOBLOOM_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/dinobloom_b_3lab.onnx";
+
+interface ScorerMeta {
+  name: string;
+  input: { size: number; mean: number[]; std: number[] };
+  temperature: number;
+  t_low: number;
+  t_high: number;
+  ood_max_abs_logit?: number;
+}
 const COLOURS: Record<string, string> = { leukemic: "#d4573a", normal: "#4f7a5a", refer_to_expert: "#a86b12", not_scored: "#7d8b93" };
 
 interface WorkerOut {
@@ -30,7 +46,8 @@ interface WorkerOut {
 let worker: Worker | null = null;
 let nextId = 0;
 
-function runWorker(file: File, umPerPx: number | undefined, onStatus: (s: string) => void): Promise<WorkerOut> {
+function runWorker(file: File, umPerPx: number | undefined, size: number, onStatus: (s: string) => void,
+  allCells = false): Promise<WorkerOut> {
   if (!worker) worker = new Worker("/smear-worker.js");
   const id = ++nextId;
   return new Promise((resolve, reject) => {
@@ -44,11 +61,20 @@ function runWorker(file: File, umPerPx: number | undefined, onStatus: (s: string
       else reject(new Error(`The cell finder failed: ${m.message}`));
     };
     w.addEventListener("message", handler);
-    w.postMessage({ id, file, umPerPx, stainJson: JSON.stringify(stain), modelSize: meta.input.size, filterSize: ctMeta.input_size });
+    w.postMessage({ id, file, umPerPx, stainJson: JSON.stringify(stain), modelSize: size, filterSize: ctMeta.input_size, allCells });
   });
 }
 
 let filterPromise: ReturnType<typeof sessionFrom> | null = null;
+let dinoPromise: ReturnType<typeof sessionFrom> | null = null;
+
+function dinoSession(onProgress: (f: number) => void) {
+  if (!dinoPromise) {
+    dinoPromise = sessionFrom(DINOBLOOM_URL, dinoMeta.onnx_sha256, onProgress);
+    dinoPromise.catch(() => { dinoPromise = null; });
+  } else onProgress(1);
+  return dinoPromise;
+}
 
 function normalise(u8: Uint8Array, n: number, size: number, mean: number[], std: number[]): Float32Array {
   const x = new Float32Array(n * 3 * size * size);
@@ -62,8 +88,8 @@ function normalise(u8: Uint8Array, n: number, size: number, mean: number[], std:
 
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-Math.max(-50, Math.min(50, z))));
 
-function decide(p: number): Decision {
-  return p < meta.t_low ? "normal" : p > meta.t_high ? "leukemic" : "refer_to_expert";
+function decider(meta: ScorerMeta) {
+  return (p: number): Decision => (p < meta.t_low ? "normal" : p > meta.t_high ? "leukemic" : "refer_to_expert");
 }
 
 function overlay(out: WorkerOut, decisions: string[]): string {
@@ -96,16 +122,22 @@ function overlay(out: WorkerOut, decisions: string[]): string {
   return c.toDataURL("image/png").split(",")[1];
 }
 
-export async function analyzeSmearInBrowser(file: File, umPerPx: number | undefined, onStatus: (s: string) => void): Promise<SmearResponse> {
+export async function analyzeSmearInBrowser(file: File, umPerPx: number | undefined, onStatus: (s: string) => void,
+  which: SmearModel = "ensemble"): Promise<SmearResponse> {
   const t0 = performance.now();
-  const modelReady = getSession((f) => f < 1 && onStatus(`Downloading the cell model, ${Math.round(100 * f)}% (about 76 MB, only the first time)`));
-  if (!filterPromise) {
+  const meta: ScorerMeta = which === "dinobloom" ? dinoMeta : ensMeta;
+  const decide = decider(meta);
+  const mb = which === "dinobloom" ? Math.round(dinoMeta.onnx_mb) : 76;
+  const progress = (f: number) => f < 1 && onStatus(`Downloading the cell model, ${Math.round(100 * f)}% (about ${mb} MB, only the first time)`);
+  const dino = which === "dinobloom";
+  const modelReady = dino ? dinoSession(progress) : getSession(progress);
+  if (!dino && !filterPromise) {
     filterPromise = sessionFrom(FILTER_URL, ctMeta.onnx_sha256);
     filterPromise.catch(() => { filterPromise = null; });
   }
-  const out = await runWorker(file, umPerPx, onStatus);
-  onStatus("Scoring each cell with the five-model ensemble");
-  const [session, filter, ort] = await Promise.all([modelReady, filterPromise, loadOrt()]);
+  const out = await runWorker(file, umPerPx, meta.input.size, onStatus, dino);
+  onStatus(dino ? "Sorting and scoring each cell with DinoBloom" : "Scoring each cell with the five-model ensemble");
+  const [session, ort] = await Promise.all([modelReady, loadOrt()]);
   const warnings = [...out.notes];
   if (out.source === "unknown")
     warnings.push("Scale could not be measured; cells were resized to a typical C-NMC size, which removes size information.");
@@ -115,13 +147,31 @@ export async function analyzeSmearInBrowser(file: File, umPerPx: number | undefi
   const n = out.scored.length;
   const fs = ctMeta.input_size, ms = meta.input.size;
   const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
+  const probs = new Map<number, number>(), ood = new Set<number>(), dropped = new Set<number>();
+  if (dino && n) {
+    // one pass: both heads; 16 cells at a time keeps the browser's memory use modest
+    const plane = ms * ms * 3, CHUNK = 16;
+    for (let s0 = 0; s0 < n; s0 += CHUNK) {
+      const k = Math.min(CHUNK, n - s0);
+      const res = await session.run({ image: new ort.Tensor("float32",
+        normalise(out.crops.data.subarray(s0 * plane, (s0 + k) * plane), k, ms, meta.input.mean, meta.input.std), [k, 3, ms, ms]) });
+      const L = res.logit.data as Float32Array, K = res.keep_logit.data as Float32Array;
+      for (let j = 0; j < k; j++) {
+        const cellIdx = out.scored[s0 + j];
+        if (K[j] < dinoMeta.filter_threshold_logit) dropped.add(cellIdx);
+        else if (Math.abs(L[j]) > (meta.ood_max_abs_logit ?? 25)) ood.add(cellIdx);
+        else probs.set(cellIdx, sigmoid(L[j] / meta.temperature));
+      }
+    }
+  }
   let keep: boolean[] = [];
-  if (n) {
+  if (!dino && n) {
+    const filter = await filterPromise!;
     const fz = (await filter.run({ image: new ort.Tensor("float32", normalise(out.filterCrops.data, n, fs, mean, std), [n, 3, fs, fs]) })).logit.data as Float32Array;
     keep = Array.from(fz, (z) => sigmoid(z) >= ctMeta.threshold);
+    out.scored.forEach((cellIdx, k) => { if (!keep[k]) dropped.add(cellIdx); });
   }
-  const kept = out.scored.filter((_, k) => keep[k]);
-  const probs = new Map<number, number>(), ood = new Set<number>(), dropped = new Set(out.scored.filter((_, k) => !keep[k]));
+  const kept = dino ? [] : out.scored.filter((_, k) => keep[k]);
   if (kept.length) {
     const plane = ms * ms * 3;
     const sel = new Uint8Array(kept.length * plane);
@@ -149,7 +199,8 @@ export async function analyzeSmearInBrowser(file: File, umPerPx: number | undefi
       decision = decide(p);
     } else {
       reason = ood.has(i) ? "out of distribution: the model's internal scores were far outside their normal range"
-        : dropped.has(i) ? "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes"
+        : dropped.has(i) ? (dino ? "not a lymphocyte or blast according to the cell filter (neutrophil, monocyte or other cell)"
+          : "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes")
         : c.touches_border ? "touches the image edge"
         : "not lymphoid-like (lobed or irregular nucleus); the model only knows lymphocytes";
     }

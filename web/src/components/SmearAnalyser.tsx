@@ -1,11 +1,28 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ACCEPTED, RUN_IN_BROWSER, SMEAR_MAX_BYTES, analyzeSmear, type SmearDecision, type SmearResponse } from "@/lib/api";
+import dinoMeta from "@/data/dinobloom_meta.json";
+import ensMeta from "@/data/model_meta.json";
+import { ACCEPTED, RUN_IN_BROWSER, SMEAR_MAX_BYTES, analyzeSmear, type SmearDecision, type SmearModel, type SmearResponse } from "@/lib/api";
 
 const SAMPLES = [
   { file: "/samples/smear-bccd-1.jpg", label: "Sample A: granulocytes" },
   { file: "/samples/smear-bccd-2.jpg", label: "Sample B: healthy lymphocyte" },
+];
+
+const MODELS: { id: SmearModel; name: string; what: string; size: string }[] = [
+  {
+    id: "ensemble",
+    name: "Five-network ensemble",
+    what: `EfficientNet-B0 x 5, fine-tuned on C-NMC. C-NMC test PR-AUC ${ensMeta.metrics.test.pr_auc.toFixed(2)}.`,
+    size: "76 MB",
+  },
+  {
+    id: "dinobloom",
+    name: "DinoBloom, three labs",
+    what: `A blood-cell foundation model (Koch et al., 2024), frozen, with a classifier and a cell filter trained on three labs (New Delhi, Johns Hopkins, Munich). On another hospital's smears: ROC-AUC ${dinoMeta.metrics.taleqani_smear_paired_vs_deployed.auc_new.toFixed(2)} vs ${dinoMeta.metrics.taleqani_smear_paired_vs_deployed.auc_old.toFixed(2)} for the ensemble.`,
+    size: `${Math.round(dinoMeta.onnx_mb)} MB`,
+  },
 ];
 
 const LABEL: Record<SmearDecision | "no_scorable_cells", string> = {
@@ -26,6 +43,8 @@ const SCALE: Record<SmearResponse["scale_source"], string> = {
 export function SmearAnalyser() {
   const inputId = useId();
   const umId = useId();
+  const modelName = useId();
+  const [model, setModel] = useState<SmearModel>("ensemble");
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [um, setUm] = useState("");
@@ -53,8 +72,8 @@ export function SmearAnalyser() {
     try {
       const um = umVal > 0 ? umVal : undefined;
       setResult(RUN_IN_BROWSER
-        ? await import("@/lib/browserSmear").then((m) => m.analyzeSmearInBrowser(f, um, setStatus))
-        : await analyzeSmear(f, um));
+        ? await import("@/lib/browserSmear").then((m) => m.analyzeSmearInBrowser(f, um, setStatus, model))
+        : await analyzeSmear(f, um, model));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -108,6 +127,21 @@ export function SmearAnalyser() {
             onChange={(e) => choose(e.target.files?.[0])} />
         </label>
 
+        <fieldset className="model-pick" disabled={busy}>
+          <legend className="small">Which model reads the cells</legend>
+          <div className="model-options">
+            {MODELS.map((m) => (
+              <label key={m.id} className={`model-option${model === m.id ? " on" : ""}`}>
+                <input type="radio" name={modelName} value={m.id} checked={model === m.id}
+                  onChange={() => { setModel(m.id); setResult(null); }} />
+                <span className="model-name">{m.name}</span>
+                <span className="small">{m.what}</span>
+                {RUN_IN_BROWSER && <span className="label">{m.size} download, first use only</span>}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <div className="field-row">
           <label htmlFor={umId} className="small">Pixel size in µm, if you know it (optional, makes the scale exact)</label>
           <input id={umId} className="num-input" inputMode="decimal" placeholder="e.g. 0.1" value={um}
@@ -119,7 +153,8 @@ export function SmearAnalyser() {
             {busy ? "Analysing..." : "Analyse smear"}
           </button>
           <span role="status" aria-live="polite" className="small">
-            {!busy ? "" : RUN_IN_BROWSER ? status || "Starting" : "Finding cells, then scoring each one with the five-model ensemble."}
+            {!busy ? "" : RUN_IN_BROWSER ? status || "Starting"
+              : `Finding cells, then scoring each one with ${model === "dinobloom" ? "DinoBloom and its classifier" : "the five-model ensemble"}.`}
           </span>
         </div>
 

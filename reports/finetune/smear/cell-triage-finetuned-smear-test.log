@@ -1,0 +1,77 @@
+[{"stream_name":"stdout","time":57.855367867,"data":"code /tmp/code bccd 364 weights /kaggle/input/notebooks/haiclop/cell-triage-dinobloom-finetune/dinobloom_b_ft_held_none.pt\n"}
+,{"stream_name":"stderr","time":89.465483039,"data":"Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"}
+,{"stream_name":"stdout","time":1502.469652564,"data":"{\n"}
+,{"stream_name":"stdout","time":1502.46970434,"data":"  \"taleqani\": {\n"}
+,{"stream_name":"stdout","time":1502.469710749,"data":"    \"ruler_x1.0_stain\": {\n"}
+,{"stream_name":"stdout","time":1502.469715538,"data":"      \"smears\": 3040,\n"}
+,{"stream_name":"stdout","time":1502.469722085,"data":"      \"roc_auc\": 0.6202047601555951,\n"}
+,{"stream_name":"stdout","time":1502.46973676,"data":"      \"pr_auc\": 0.8729840623379441,\n"}
+,{"stream_name":"stdout","time":1502.46974003,"data":"      \"benign_called_leukemic_at_0.5\": 0.0199203187250996,\n"}
+,{"stream_name":"stdout","time":1502.469743762,"data":"      \"all_smears_missed_at_0.5\": 0.9700551615445232\n"}
+,{"stream_name":"stdout","time":1502.469762815,"data":"    },\n"}
+,{"stream_name":"stdout","time":1502.469767928,"data":"    \"ruler_x1.0_stain_filtered\": {\n"}
+,{"stream_name":"stdout","time":1502.469773549,"data":"      \"smears\": 2942,\n"}
+,{"stream_name":"stdout","time":1502.469778905,"data":"      \"roc_auc\": 0.6686814865242285,\n"}
+,{"stream_name":"stdout","time":1502.469784129,"data":"      \"pr_auc\": 0.8852534180870444,\n"}
+,{"stream_name":"stdout","time":1502.469788758,"data":"      \"benign_called_leukemic_at_0.5\": 0.045454545454545456,\n"}
+,{"stream_name":"stdout","time":1502.469793388,"data":"      \"all_smears_missed_at_0.5\": 0.9604838709677419\n"}
+,{"stream_name":"stdout","time":1502.469798124,"data":"    },\n"}
+,{"stream_name":"stdout","time":1502.46980234,"data":"    \"ruler_x1.0\": {\n"}
+,{"stream_name":"stdout","time":1502.469806864,"data":"      \"smears\": 3040,\n"}
+,{"stream_name":"stdout","time":1502.469816884,"data":"      \"roc_auc\": 0.642925539763719,\n"}
+,{"stream_name":"stdout","time":1502.46982163,"data":"      \"pr_auc\": 0.8759786824924704,\n"}
+,{"stream_name":"stdout","time":1502.469824632,"data":"      \"benign_called_leukemic_at_0.5\": 0.017928286852589643,\n"}
+,{"stream_name":"stdout","time":1502.469827778,"data":"      \"all_smears_missed_at_0.5\": 0.9806934594168637\n"}
+,{"stream_name":"stdout","time":1502.469830896,"data":"    },\n"}
+,{"stream_name":"stdout","time":1502.46983394,"data":"    \"ruler_x1.0_filtered\": {\n"}
+,{"stream_name":"stdout","time":1502.46983706,"data":"      \"smears\": 2942,\n"}
+,{"stream_name":"stdout","time":1502.469840012,"data":"      \"roc_auc\": 0.6910352080714983,\n"}
+,{"stream_name":"stdout","time":1502.469842996,"data":"      \"pr_auc\": 0.8887124963901549,\n"}
+,{"stream_name":"stdout","time":1502.469845962,"data":"      \"benign_called_leukemic_at_0.5\": 0.04329004329004329,\n"}
+,{"stream_name":"stdout","time":1502.469848979,"data":"      \"all_smears_missed_at_0.5\": 0.9745967741935484\n"}
+,{"stream_name":"stdout","time":1502.469851987,"data":"    }\n"}
+,{"stream_name":"stdout","time":1502.469854854,"data":"  },\n"}
+,{"stream_name":"stdout","time":1502.469857742,"data":"  \"paired_vs_deployed_model\": {\n"}
+,{"stream_name":"stdout","time":1502.469860714,"data":"    \"main_arm_stain_filtered\": {\n"}
+,{"stream_name":"stdout","time":1502.469863727,"data":"      \"smears\": 2674,\n"}
+,{"stream_name":"stdout","time":1502.46986666,"data":"      \"auc_old\": 0.5670364942563733,\n"}
+,{"stream_name":"stdout","time":1502.469869629,"data":"      \"auc_new\": 0.7395685750744594,\n"}
+,{"stream_name":"stdout","time":1502.469883262,"data":"      \"difference\": 0.17253208081808613,\n"}
+,{"stream_name":"stdout","time":1502.469885967,"data":"      \"difference_ci95\": [\n"}
+,{"stream_name":"stdout","time":1502.469888367,"data":"        0.12539590505375622,\n"}
+,{"stream_name":"stdout","time":1502.469890704,"data":"        0.22121693320447924\n"}
+,{"stream_name":"stdout","time":1502.469893048,"data":"      ]\n"}
+,{"stream_name":"stdout","time":1502.469895328,"data":"    },\n"}
+,{"stream_name":"stdout","time":1502.46989759,"data":"    \"stain_unfiltered\": {\n"}
+,{"stream_name":"stdout","time":1502.469900469,"data":"      \"smears\": 3017,\n"}
+,{"stream_name":"stdout","time":1502.46990301,"data":"      \"auc_old\": 0.6875914215451439,\n"}
+,{"stream_name":"stdout","time":1502.469905381,"data":"      \"auc_new\": 0.621671297627032,\n"}
+,{"stream_name":"stdout","time":1502.469908012,"data":"      \"difference\": -0.06592012391811186,\n"}
+,{"stream_name":"stdout","time":1502.469910368,"data":"      \"difference_ci95\": [\n"}
+,{"stream_name":"stdout","time":1502.469912722,"data":"        -0.10243942938678056,\n"}
+,{"stream_name":"stdout","time":1502.469915035,"data":"        -0.028063583285670025\n"}
+,{"stream_name":"stdout","time":1502.469917435,"data":"      ]\n"}
+,{"stream_name":"stdout","time":1502.469919676,"data":"    }\n"}
+,{"stream_name":"stdout","time":1502.469921966,"data":"  },\n"}
+,{"stream_name":"stdout","time":1502.469924207,"data":"  \"bccd_healthy\": {\n"}
+,{"stream_name":"stdout","time":1502.469926549,"data":"    \"stain\": {\n"}
+,{"stream_name":"stdout","time":1502.469928871,"data":"      \"cells_after_filter\": 53,\n"}
+,{"stream_name":"stdout","time":1502.469931374,"data":"      \"called_leukemic_at_0.5\": 0.2641509433962264\n"}
+,{"stream_name":"stdout","time":1502.46993379,"data":"    },\n"}
+,{"stream_name":"stdout","time":1502.469936063,"data":"    \"raw\": {\n"}
+,{"stream_name":"stdout","time":1502.469938367,"data":"      \"cells_after_filter\": 53,\n"}
+,{"stream_name":"stdout","time":1502.469940826,"data":"      \"called_leukemic_at_0.5\": 0.22641509433962265\n"}
+,{"stream_name":"stdout","time":1502.469943222,"data":"    }\n"}
+,{"stream_name":"stdout","time":1502.469945494,"data":"  },\n"}
+,{"stream_name":"stdout","time":1502.469947788,"data":"  \"note\": \"DinoBloom-B frozen + logistic regression; same smears, finder, filter and crops as the deployed model's tests\",\n"}
+,{"stream_name":"stdout","time":1502.469950551,"data":"  \"classifier\": \"/tmp/code/reports/foundation/dinobloom_b_logreg.joblib\",\n"}
+,{"stream_name":"stdout","time":1502.469954989,"data":"  \"cell_filter\": \"/tmp/code/reports/multilab/dinobloom_b_filter.joblib\",\n"}
+,{"stream_name":"stdout","time":1502.46995764,"data":"  \"dinobloom_variant\": \"b\"\n"}
+,{"stream_name":"stdout","time":1502.469960092,"data":"}\n"}
+,{"stream_name":"stderr","time":1514.905314149,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":1514.905349932,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":1515.214865017,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":1515.214911312,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":1516.112463263,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":1517.252305962,"data":"[NbConvertApp] Writing 283296 bytes to __results__.html\n"}
+]
