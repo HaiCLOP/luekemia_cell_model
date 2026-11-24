@@ -9,6 +9,7 @@ const pct = (v: number) => `${(100 * v).toFixed(1)}%`;
 export default function Method() {
   const d = results.data;
   const b = results.band;
+  const dep = results.deployed;
   return (
     <article className="prose section" style={{ paddingTop: 48 }}>
       <p className="eyebrow">Method</p>
@@ -59,7 +60,8 @@ export default function Method() {
           on validation subjects: below the lower one the cell is called normal, above the upper one leukemic, and in between it goes to a
           person. Fitted on two thirds of the validation subjects and scored on the remaining third (rotated, nested), the band referred {pct(b.band.referral_rate)} of cells and cut missed leukemic cells from{" "}
           {pct(b.fixed.miss_rate)} to {pct(b.band.miss_rate)}, while false alarms stayed at {pct(b.band.false_alarm_rate)}. Referring the same
-          share of cells at random barely helps ({pct(b.random.miss_rate)} missed).
+          share of cells at random barely helps ({pct(b.random.miss_rate)} missed). These figures are from the C-NMC study of the retired
+          model {results.retired.name}; the deployed model&apos;s band was fitted the same way on out-of-lab predictions (section 3).
         </p>
         <figure className="figure" style={{ marginTop: 20 }}>
           <img src="/figures/referral_band.png" alt="Histogram of calibrated scores for normal and leukemic validation cells, with the referral band shaded between 0.2 and 0.5." />
@@ -67,9 +69,27 @@ export default function Method() {
         </figure>
       </section>
 
+      <section style={{ marginTop: 56 }} aria-labelledby="labs">
+        <h2 id="labs" className="display" style={{ fontSize: "clamp(30px,4vw,42px)" }}>
+          3. Learning the disease, not the lab
+        </h2>
+        <p>
+          A model trained on one lab scored well on that lab&apos;s held-out people and badly everywhere else: it had learned the
+          lab&apos;s stain and microscope. The deployed model, {results.model.name}, is trained on {results.model.training_labs.length} labs that each
+          contribute both classes, so &quot;which lab&quot; cannot predict the answer. Every outside cell is cut out with the same pipeline
+          the website uses and colour-matched to C-NMC.
+        </p>
+        <p>
+          It is judged by leaving one lab out: train on two, test on the third, for each lab in turn. Its temperature and referral band
+          are fitted only on those out-of-lab predictions; out of lab the band called {pct(dep.band_out_of_lab.miss_rate)} of leukemic
+          cells normal while referring {pct(dep.band_out_of_lab.referral_rate)} of cells. ALL-IDB2, a fourth lab never used for anything
+          else, then gave ROC-AUC {dep.all_idb2!.roc_auc.toFixed(3)}.
+        </p>
+      </section>
+
       <section style={{ marginTop: 56 }} aria-labelledby="honest">
         <h2 id="honest" className="display" style={{ fontSize: "clamp(30px,4vw,42px)" }}>
-          3. Keeping the numbers honest
+          4. Keeping the numbers honest
         </h2>
         <ul className="limits" style={{ paddingLeft: 18 }}>
           <li>Every interval comes from resampling whole subjects, because cells from one person are not independent.</li>

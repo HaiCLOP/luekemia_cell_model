@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -520,8 +521,8 @@ def export_web() -> dict:
             h = self.heads(self.backbone(image))
             return h[:, 0], h[:, 1]
 
-    fp32 = Path(os.environ.get("TEMP", "E:/cache")) / "dinobloom_b_3lab_fp32.onnx"
-    final_path = resolve("models") / "dinobloom_b_3lab.onnx"
+    fp32 = Path(os.environ.get("TEMP", "E:/cache")) / "MH51401102_fp32.onnx"
+    final_path = resolve("models") / "MH51401102.onnx"
     torch.onnx.export(Net().eval(), torch.zeros(1, 3, 224, 224), str(fp32), input_names=["image"],
                       output_names=["logit", "keep_logit"],
                       dynamic_axes={"image": {0: "n"}, "logit": {0: "n"}, "keep_logit": {0: "n"}}, opset_version=17, dynamo=False)
@@ -550,7 +551,7 @@ def export_web() -> dict:
              "filter_agreement": float(((kq >= thr_logit) == (kr >= thr_logit)).mean())}
     lolo_res = json.loads((OUT / "lolo_results.json").read_text())["labs"]
     tal = json.loads((OUT / "outside_results_b_dbfilter.json").read_text())
-    meta = {"name": "DinoBloom-B-3lab",
+    meta = {"name": "MH51401102", "former_name": "DinoBloom-B-3lab",
             "architecture": "DinoBloom-B (frozen DINOv2 ViT-B/14, MarrLab) + logistic regression on three labs + DinoBloom cell filter",
             "task": "leukemic blast vs normal lymphocyte",
             "training_labs": ["C-NMC 2019 (AIIMS New Delhi)", "DeepAPL (Johns Hopkins)", "AML-Cytomorphology_LMU (LMU Munich)"],
@@ -563,14 +564,19 @@ def export_web() -> dict:
             "ood_max_abs_logit": round(1.5 * float(np.abs(clf.decision_function(x[trainable])).max()), 1),
             "quant_check": check,
             "metrics": {"leave_one_lab_out_roc_auc": {k: v["multilab"]["roc_auc"] for k, v in lolo_res.items()},
-                        "taleqani_smear_paired_vs_deployed": tal["paired_vs_deployed_model"]["main_arm_stain_filtered"],
+                        "taleqani_smear_paired_vs_retired_MH51401122": tal["paired_vs_deployed_model"]["main_arm_stain_filtered"],
                         "taleqani_smear_roc_auc_all_scored": tal["taleqani"]["ruler_x1.0_stain_filtered"]["roc_auc"],
                         "bccd_healthy_called_leukemic": tal["bccd_healthy"]["stain"]},
             "onnx_file": final_path.name, "onnx_sha256": hashlib.sha256(final_path.read_bytes()).hexdigest(),
             "onnx_mb": round(final_path.stat().st_size / 2**20, 1),
             "weights_licence": "DinoBloom weights: Apache-2.0 (Koch et al., MICCAI 2024)",
             "disclaimer": "Research demo. Not for clinical use."}
-    for p in (resolve("models") / "dinobloom_meta.json", resolve("web/src/data/dinobloom_meta.json")):
+    old = resolve("models") / "model_meta.json"     # keep results recorded after export (e.g. ALL-IDB2)
+    if old.exists():
+        prev = json.loads(old.read_text()).get("metrics", {})
+        meta["metrics"] = {**{k: v for k, v in prev.items() if k not in meta["metrics"]}, **meta["metrics"]}
+    meta["exported"] = datetime.now(timezone.utc).isoformat()
+    for p in (old, resolve("web/src/data/model_meta.json")):
         p.write_text(json.dumps(meta, indent=2, default=float))
     print(json.dumps({k: meta[k] for k in ("temperature", "t_low", "t_high", "filter_threshold_logit", "ood_max_abs_logit",
                                             "quant_check", "onnx_mb")}, indent=1, default=float))

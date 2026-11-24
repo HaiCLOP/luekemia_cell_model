@@ -13,7 +13,8 @@ def test_browser_cell_finder_is_the_real_one():
 def test_browser_model_metadata_matches_the_deployed_model():
     web = json.loads((ROOT / "web/src/data/model_meta.json").read_text())
     real = json.loads((ROOT / "models/model_meta.json").read_text())
-    for k in ("name", "onnx_sha256", "temperature", "t_low", "t_high", "ood_max_abs_logit", "input"):
+    for k in ("name", "onnx_sha256", "onnx_file", "temperature", "t_low", "t_high", "ood_max_abs_logit", "input",
+              "filter_threshold_logit"):
         assert web[k] == real[k], k
 
 
@@ -22,13 +23,3 @@ def test_browser_colour_and_filter_settings_match():
     web = json.loads((ROOT / "web/src/data/cell_type_meta.json").read_text())
     real = json.loads((ROOT / "models/cell_type_meta.json").read_text())
     assert web["threshold"] == real["threshold"] and web["input_size"] == real["input_size"]
-
-
-def test_browser_dinobloom_metadata_matches():
-    real_p = ROOT / "models/dinobloom_meta.json"
-    if not real_p.exists():  # optional model; the web copy is committed, the ONNX and its meta live in models/
-        return
-    web = json.loads((ROOT / "web/src/data/dinobloom_meta.json").read_text())
-    real = json.loads(real_p.read_text())
-    for k in ("name", "onnx_sha256", "temperature", "t_low", "t_high", "ood_max_abs_logit", "input", "filter_threshold_logit"):
-        assert web[k] == real[k], k

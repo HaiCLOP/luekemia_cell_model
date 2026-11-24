@@ -1,5 +1,6 @@
-"""API contract tests. They run in CI without the trained weights: a fake ONNX session returns fixed member
-logits and a CAM of the right shape, so routes, validation, input checks and decision logic are all exercised.
+"""API contract tests. They run in CI without the trained weights: a fake ONNX session returns a fixed blast logit
+and cell-filter logit, the two outputs of MH51401102, so routes, validation, input checks and decision logic are all
+exercised.
 No database (SUPABASE_* unset)."""
 import base64
 import hashlib
@@ -19,19 +20,26 @@ os.environ["RATE_LIMIT"] = "1000/minute"
 os.environ["API_SKIP_DOTENV"] = "1"
 
 DISCLAIMER = "Research demo. Not for clinical use."
-FAKE_LOGIT = 0.4  # same logit from every member; the test recomputes the calibrated score and decision
+FAKE_LOGIT = 0.4  # the test recomputes the calibrated score and decision from it
+
+
+class _Out:
+    def __init__(self, name):
+        self.name = name
 
 
 class FakeSession:
-    def __init__(self, logit: float):
-        self.logit = logit
+    def __init__(self, logit: float, keep_logit: float = 5.0):
+        self.logit, self.keep_logit = logit, keep_logit
+
+    def get_outputs(self):
+        return [_Out("logit"), _Out("keep_logit")]
 
     def run(self, _outputs, feeds):
         x = feeds["image"]
         assert x.shape[1:] == (3, 224, 224) and x.dtype == np.float32
-        cam = np.zeros((x.shape[0], 7, 7), np.float32)
-        cam[:, 3, 3] = 1.0
-        return [np.full((x.shape[0], 5), self.logit, np.float32), cam]
+        n = x.shape[0]
+        return [np.full(n, self.logit, np.float32), np.full(n, self.keep_logit, np.float32)]
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +50,8 @@ def model_dir():
     meta = {"name": "fake-v0", "architecture": "fake", "input": {"size": 224, "mean": [0.485, 0.456, 0.406],
             "std": [0.229, 0.224, 0.225]}, "temperature": 1.0728, "t_low": 0.2, "t_high": 0.5,
             "band_target": "test", "metrics": {}, "onnx_file": "fake.onnx",
-            "onnx_sha256": hashlib.sha256(blob).hexdigest(), "exported": "2026-01-01T00:00:00Z"}
+            "onnx_sha256": hashlib.sha256(blob).hexdigest(), "exported": "2026-01-01T00:00:00Z",
+            "filter_threshold_logit": 0.0, "ood_max_abs_logit": 12.9}
     (d / "model_meta.json").write_text(json.dumps(meta))
     return d
 
@@ -101,11 +110,10 @@ def test_predict_valid_cell_returns_schema(client, fmt):
     assert r.status_code == 200, r.text
     j = r.json()
     for key in ("prediction_id", "model_version", "prob_raw", "prob_calibrated", "decision", "band",
-                "heatmap_png_base64", "latency_ms", "disclaimer"):
+                "latency_ms", "disclaimer"):
         assert key in j
     assert j["decision"] in {"leukemic", "normal", "refer_to_expert"}
     assert j["disclaimer"] == DISCLAIMER and j["image_stored"] is False
-    Image.open(io.BytesIO(base64.b64decode(j["heatmap_png_base64"]))).verify()
 
 
 def test_calibration_and_decision_match_meta(client):
@@ -129,6 +137,22 @@ def test_out_of_contract_images_get_no_score(client, data, code):
     assert r.status_code == 422, r.text
     j = r.json()
     assert j["code"] == code and "decision" not in j and j["disclaimer"] == DISCLAIMER
+
+
+def test_cell_the_filter_drops_gets_no_score(client):
+    """A neutrophil or monocyte: the model's own cell filter says no, so there is no score."""
+    import api.main as main
+
+    sess = main.state["model"].session
+    sess.keep_logit = -5.0
+    try:
+        r = post(client, cell())
+        assert r.status_code == 422 and r.json()["code"] == "not_lymphoid" and "decision" not in r.json()
+        j = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=2), "image/png")}).json()
+        assert j["summary"]["cells_scored"] == 0
+        assert all("cell filter" in (c["reason"] or "") for c in j["cells"] if not c["touches_border"])
+    finally:
+        sess.keep_logit = 5.0
 
 
 def test_flat_blob_is_rejected(client):
@@ -193,12 +217,12 @@ def test_real_weights_if_present():
     """Optional smoke test against the real exported model (skipped in CI, which has no weights)."""
     real = Path(__file__).resolve().parents[1] / "models"
     if not list(real.glob("*.onnx")):
-        pytest.skip("no ONNX weights (run python -m src.export)")
+        pytest.skip("no ONNX weights (python -m src.multilab export_web)")
     from api.inference import Model
 
     m = Model(real)
     pred = m.predict(Image.open(io.BytesIO(cell())))
-    assert pred.decision in {"leukemic", "normal", "refer_to_expert"} and len(pred.member_probs) == 5
+    assert pred.decision in {"leukemic", "normal", "refer_to_expert"} and 0 <= pred.prob_calibrated <= 1
 
 
 # ------------------------------------------------------------------ /analyze-smear
@@ -216,10 +240,9 @@ def test_smear_finds_and_scores_cells(client):
     assert r.status_code == 200, r.text
     j = r.json()
     s = j["summary"]
-    assert s["cells_found"] == 4 and s["cells_scored"] == 3 and s["not_scored"] == 1
+    # every cell off the edge goes to the model; its own filter (here: keep everything) decides, not the shape rule
+    assert s["cells_found"] == 4 and s["cells_scored"] == 4 and s["not_scored"] == 0
     assert j["scale_source"] == "red_cells_in_image" and j["rbc_diameter_px"] > 0
-    lobed = [c for c in j["cells"] if not c["lymphoid_like"]]
-    assert lobed and lobed[0]["decision"] == "not_scored" and lobed[0]["prob_calibrated"] is None
     assert s["smear_decision"] in {"leukemic", "normal", "refer_to_expert"}
     assert j["disclaimer"] == DISCLAIMER
     Image.open(io.BytesIO(base64.b64decode(j["overlay_png_base64"]))).verify()
@@ -255,6 +278,6 @@ def test_out_of_distribution_logits_get_no_score(client):
         assert r.status_code == 422 and r.json()["code"] == "out_of_distribution"
         j = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=2), "image/png")}).json()
         assert j["summary"]["cells_scored"] == 0
-        assert all("out of distribution" in (c["reason"] or "") for c in j["cells"] if c["lymphoid_like"])
+        assert all("out of distribution" in (c["reason"] or "") for c in j["cells"] if not c["touches_border"])
     finally:
         sess.logit = old

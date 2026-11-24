@@ -1,6 +1,8 @@
-"""Export the deployed model (5-seed EfficientNet-B0 ensemble) to ONNX for CPU inference.
+"""Export the RETIRED 5-seed EfficientNet-B0 ensemble (MH51401122) to ONNX, for reproducing earlier experiments.
+The deployed model is MH51401102 (python -m src.multilab export_web). This writes to its own folder by default so
+it can never replace models/model_meta.json.
 
-Usage: python -m src.export [--name MH51401122]
+Usage: python -m src.export [--name MH51401122] [--out models/retired_effb0]
 
 Graph inputs:  image  float32 [B, 3, 224, 224]  (ImageNet-normalised, same as training eval transform)
 Graph outputs: logits float32 [B, 5]             (one raw logit per ensemble member)
@@ -54,7 +56,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", default="MH51401122")
     ap.add_argument("--prefix", default="effb0_main", help="run-name prefix of the five seed checkpoints")
-    ap.add_argument("--out", default="models", help="output folder (a second model goes in its own folder)")
+    ap.add_argument("--out", default="models/retired_effb0", help="output folder (a second model goes in its own folder)")
     args = ap.parse_args()
     cfg = load_config()
     seeds = cfg["calibration"]["ensemble_seeds"]

@@ -237,8 +237,8 @@ def export() -> dict:
             "onnx_file": final.name, "onnx_sha256": sha, "onnx_mb": round(final.stat().st_size / 2**20, 1),
             "weights_licence": "DinoBloom weights: Apache-2.0 (Koch et al., MICCAI 2024)",
             "disclaimer": "Research demo. Not for clinical use."}
-    for p in (models / "dinobloom_meta.json", resolve("web/src/data/dinobloom_meta.json")):
-        p.write_text(json.dumps(meta, indent=2, default=float))
+    # an experiment, not the deployed model: its metadata stays beside its ONNX file and is not shipped to the website
+    (models / "dinobloom_b_cnmc_meta.json").write_text(json.dumps(meta, indent=2, default=float))
     print(json.dumps(meta, indent=2, default=float))
     return meta
 

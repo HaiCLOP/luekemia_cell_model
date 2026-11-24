@@ -16,22 +16,20 @@ export default function SmearPage() {
         </h1>
         <p className="lede" style={{ marginTop: 20 }}>
           Upload a stained blood-smear field. Each white cell is found by its stain, red cells are used as a ruler to bring every cell
-          to the magnification the model was trained at, and each lymphoid-looking cell is cut out onto black and read on its own.
-          Lobed cells such as neutrophils are outlined but not scored: the model only knows lymphocytes.
+          to the magnification the model was trained at, and every cell is cut out onto black. The model&apos;s own filter then sets
+          aside cells that are not lymphocytes or blasts, such as neutrophils, and reads the rest one by one.
         </p>
       </header>
       <aside className="smear-caveat" aria-labelledby="caveat-title">
         <h2 id="caveat-title" className="eyebrow">Experimental · read before trusting a verdict</h2>
         <p>
           The cell finder works well: it found 99.7% of white cells on 364 BCCD smears. The hard part is reading the cells on
-          smears from a lab the model never saw. The five-network ensemble learned from one lab and barely beats chance on
-          another hospital&rsquo;s leukemia smears (ROC-AUC 0.57; 79% of benign smears called leukemic), and its cell filter
-          skips the healthy lymphocyte in sample B below, so you will get &ldquo;no scorable cells&rdquo;. The DinoBloom option
-          was trained on three labs (New Delhi, Johns Hopkins, Munich) and has its own cell filter: on the same outside smears
-          it reaches 0.83, and calls 26% of healthy-donor lymphocytes leukemic instead of 100%. Sample B is one of those 26%:
-          DinoBloom reads it and wrongly calls it leukemic (score 0.55, just over the line). That is better, not good. Its
-          scores run low on a lab it has not seen, so a fixed cut-off misses most leukemia smears there; a new lab would need
-          to set its own cut-off on a few smears it has already diagnosed. Expect refusals and wrong answers; that is what this
+          smears from a lab the model never saw. The model, MH51401102, was trained on three labs (New Delhi, Johns Hopkins,
+          Munich). On another hospital&rsquo;s leukemia smears it reaches ROC-AUC 0.83 (the retired single-lab model managed
+          0.57), and it calls 26% of healthy-donor lymphocytes leukemic. Sample B is one of those 26%: the model wrongly calls
+          it leukemic (score 0.55, just over the line). That is better, not good. Its scores run low on a lab it has not seen,
+          so a fixed cut-off misses most leukemia smears there; a new lab would need to set its own cut-off on a few smears it
+          has already diagnosed. Expect refusals and wrong answers; that is what this
           page exists to show. Full figures are in the smear section of the model card.
         </p>
       </aside>

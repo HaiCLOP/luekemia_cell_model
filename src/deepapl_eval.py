@@ -90,12 +90,13 @@ def _calls(p, y, t_low, t_high):
 def main() -> dict:
     import cv2
 
-    from api.inference import FoundationModel, Model
+    from api.inference import Model
     from src.smear_eval import CellTypeFilter
     from src.vision.segment import CNMC_RBC_PX, find_white_cells, to_cnmc
 
     models = resolve("models")
-    ens, dino, filt = Model(models), FoundationModel(models), CellTypeFilter(models)
+    # the retired ensemble MH51401122 is re-created with `python -m src.export` (models/retired_effb0)
+    ens, dino, filt = Model(models / "retired_effb0"), Model(models), CellTypeFilter(models)
     stain = json.loads((models / "cnmc_stain.json").read_text())
     df = tiles()
     rng = np.random.default_rng(0)

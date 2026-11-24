@@ -1,12 +1,79 @@
 {
   "model": {
+    "name": "MH51401102",
+    "architecture": "DinoBloom-B (frozen DINOv2 ViT-B/14, MarrLab) + logistic regression on three labs + DinoBloom cell filter",
+    "temperature": 2.674696265496208,
+    "t_low": 0.17530165913912382,
+    "t_high": 0.5,
+    "band_target": "leukemic miss rate <= 2% on out-of-lab predictions (each lab scored by a model fitted on the other two)",
+    "onnx_mb": 94.3,
+    "training_labs": [
+      "C-NMC 2019 (AIIMS New Delhi)",
+      "DeepAPL (Johns Hopkins)",
+      "AML-Cytomorphology_LMU (LMU Munich)"
+    ]
+  },
+  "deployed": {
+    "leave_one_lab_out_roc_auc": {
+      "cnmc": 0.6521167809951013,
+      "jhu": 0.9403450408650426,
+      "lmu": 0.8307478120189042
+    },
+    "band_out_of_lab": {
+      "t_low": 0.17530165913912382,
+      "t_high": 0.5,
+      "referral_rate": 0.5561623487264625,
+      "miss_rate": 0.01893369246613325,
+      "false_alarm_rate": 0.16783557373855446,
+      "auto_accuracy": 0.8068707549955705,
+      "coverage": 0.4438376512735375,
+      "target_miss_rate": 0.02
+    },
+    "all_idb2": {
+      "evaluated": "2026-11-24",
+      "tiles": 260,
+      "cells_cut_out": 255,
+      "roc_auc": 0.9329230769230769,
+      "roc_auc_ci95": [
+        0.8972488823493318,
+        0.9614861194320818
+      ],
+      "pr_auc": 0.9150238371453564,
+      "after_filter": {
+        "cells": 212,
+        "roc_auc": 0.9424486803519061,
+        "roc_auc_ci95": [
+          0.904454309135935,
+          0.972020060235753
+        ],
+        "pr_auc": 0.9534680841960792,
+        "recall_at_0.5": 0.9838709677419355,
+        "specificity_at_0.5": 0.7613636363636364,
+        "band": {
+          "t_low": 0.17530165913912382,
+          "t_high": 0.5,
+          "referral_rate": 0.32075471698113206,
+          "miss_rate": 0.0,
+          "false_alarm_rate": 0.23863636363636365,
+          "auto_accuracy": 0.8541666666666666,
+          "coverage": 0.6792452830188679
+        }
+      },
+      "interval_note": "image-level bootstrap (ALL-IDB2 publishes no patient IDs)",
+      "retired_MH51401122_roc_auc": 0.7276307692307692
+    },
+    "taleqani_smear_roc_auc": 0.8276506002086624,
+    "taleqani_smear_roc_auc_retired": 0.5670364942563733,
+    "bccd_healthy_called_leukemic": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.2641509433962264
+    }
+  },
+  "retired": {
     "name": "MH51401122",
     "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
-    "temperature": 1.0728,
     "t_low": 0.2,
-    "t_high": 0.5,
-    "band_target": "leukemic miss rate <= 2% on validation subjects",
-    "onnx_mb": 75.6
+    "t_high": 0.5
   },
   "data": {
     "images": 12068,
@@ -55,7 +122,7 @@
   },
   "models": [
     {
-      "name": "Deployed: 5-seed EfficientNet-B0 ensemble",
+      "name": "MH51401122 (retired): 5-seed EfficientNet-B0 ensemble",
       "deployed": true,
       "pr_auc": 0.9737394217322837,
       "pr_auc_ci": [

@@ -99,7 +99,7 @@ def main() -> None:
         if not qc.ok:  # counted, and kept out of the scored set, exactly as the API would treat them
             rejected[qc.code] = rejected.get(qc.code, 0) + 1
             continue
-        pred = model.predict(img, with_heatmap=False)
+        pred = model.predict(img)
         p_raw.append(pred.prob_raw); p_cal.append(pred.prob_calibrated); ys.append(y); units.append(unit)
     p_raw, p_cal, ys, units = map(np.asarray, (p_raw, p_cal, ys, units))
 

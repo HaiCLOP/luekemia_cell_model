@@ -1,5 +1,5 @@
-"""Smear analysis for the API: find white cells, put each lymphoid-like cell on C-NMC scale, score it with
-the frozen single-cell ensemble, and summarise. Research demo. Not for clinical use.
+"""Smear analysis for the API: find white cells, put each on C-NMC scale, let MH51401102's own cell filter keep
+lymphocytes and blasts, score those, and summarise. Research demo. Not for clinical use.
 
 The smear-level decision applies the single-cell band to the MEAN calibrated score of the scored cells.
 That is a research aggregate (see src/smear_eval.py for how it behaves on an outside ALL dataset), not a
@@ -30,32 +30,6 @@ COLOURS = {"leukemic": (212, 87, 58), "normal": (79, 122, 90), "refer_to_expert"
 def _stain_target(model_dir: str) -> dict | None:
     f = Path(model_dir) / "cnmc_stain.json"
     return json.loads(f.read_text()) if f.exists() else None
-
-
-@lru_cache(maxsize=4)
-def _cell_filter(model_dir: str):
-    """The learned lymphoid / other-white-cell filter, if this server has it (models/cell_type_meta.json)."""
-    meta_f = Path(model_dir) / "cell_type_meta.json"
-    if not meta_f.exists():
-        return None
-    import onnxruntime as ort
-
-    meta = json.loads(meta_f.read_text())
-    sess = ort.InferenceSession(str(Path(model_dir) / meta["onnx_file"]), providers=["CPUExecutionProvider"])
-    return sess, int(meta["input_size"]), float(meta["threshold"])
-
-
-def _filter_keep(model_dir: str, crops: list[np.ndarray]) -> np.ndarray | None:
-    f = _cell_filter(model_dir)
-    if f is None or not crops:
-        return None
-    sess, size, thr = f
-    mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 3, 1, 1)
-    std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 3, 1, 1)
-    x = np.stack([np.asarray(Image.fromarray(c).resize((size, size), Image.BILINEAR)) for c in crops]).astype(np.float32)
-    x = (x.transpose(0, 3, 1, 2) / 255.0 - mean) / std
-    z = sess.run(None, {"image": x})[0].reshape(-1)
-    return 1 / (1 + np.exp(-np.clip(z, -50, 50))) >= thr
 
 
 def _overlay(rgb: np.ndarray, cells, decisions) -> str:
@@ -101,30 +75,21 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
     stain = _stain_target(str(model.dir))
     if stain is None:
         warnings.append("C-NMC colour statistics missing on this server; cells were scored in their original colours.")
-    own_filter = getattr(model, "has_filter", False)    # DinoBloom-B-3lab: every cell off the edge, its own filter decides
     crops, idx = [], []
-    for i, c in enumerate(res.cells):
-        if (c.lymphoid_like or own_filter) and not c.touches_border:
+    for i, c in enumerate(res.cells):            # every cell off the image edge; the model's own filter decides
+        if not c.touches_border:
             crops.append(to_cnmc(rgb, c, res.scale, mode="ruler" if res.scale else "fit", stain=stain))
             idx.append(i)
     probs, ood, dropped = {}, set(), set()
     logits = None
-    if own_filter and crops:
-        xs = np.concatenate([model.preprocess(Image.fromarray(cr))[0] for cr in crops], axis=0)
-        z, keep = model.logits_and_keep(xs)
-        dropped = {i for i, k in zip(idx, keep) if not k}
-        idx = [i for i, k in zip(idx, keep) if k]
-        logits = z[keep][:, None]
-        crops = []
-    elif not own_filter:
-        keep = _filter_keep(str(model.dir), crops)
-        if keep is not None:
-            dropped = {i for i, k in zip(idx, keep) if not k}
-            crops = [c for c, k in zip(crops, keep) if k]
-            idx = [i for i, k in zip(idx, keep) if k]
     if crops:
         xs = np.concatenate([model.preprocess(Image.fromarray(cr))[0] for cr in crops], axis=0)
-        logits = model.cell_logits(xs)
+        z, keep = model.logits_and_keep(xs)
+        if keep is not None:
+            dropped = {i for i, k in zip(idx, keep) if not k}
+            idx = [i for i, k in zip(idx, keep) if k]
+            z = z[keep]
+        logits = z[:, None]
     if logits is not None:
         for i, l in zip(idx, logits):
             if float(np.abs(l).max()) > model.ood_logit:
@@ -141,10 +106,8 @@ def analyse_smear(model, img: Image.Image, um_per_px: float | None = None, rbc_d
         else:
             p, d = None, "not_scored"
             reason = ("out of distribution: the model's internal scores were far outside their normal range" if i in ood
-                      else ("not a lymphocyte or blast according to the cell filter (neutrophil, monocyte or other cell)" if own_filter
-                            else "not a lymphocyte according to the cell-type filter; the model only knows lymphocytes") if i in dropped
-                      else "touches the image edge" if c.touches_border
-                      else "not lymphoid-like (lobed or irregular nucleus); the model only knows lymphocytes")
+                      else "not a lymphocyte or blast according to the cell filter (neutrophil, monocyte or other cell)" if i in dropped
+                      else "touches the image edge")
         decisions.append(d)
         out_cells.append(SmearCell(id=i + 1, box=[int(round(v * shrink)) for v in c.box], lymphoid_like=c.lymphoid_like,
                                    touches_border=c.touches_border, prob_calibrated=None if p is None else round(float(p), 4),

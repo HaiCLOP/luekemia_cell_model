@@ -6,20 +6,20 @@ import results from "@/data/results.json";
 import { RESULT_KEY, RUN_IN_BROWSER, sendFeedback, type StoredResult } from "@/lib/api";
 
 const pct = (v: number) => `${(100 * v).toFixed(1)}%`;
-const BAND = results.band;
+const BAND = results.deployed.band_out_of_lab;
 
 const COPY = {
   normal: {
     stamp: "Normal",
     line1: "Reads as a",
     line2: "normal lymphocyte.",
-    body: "The calibrated score sits below the lower edge of the band, where the model has been reliable on validation subjects.",
+    body: "The calibrated score sits below the lower edge of the band, where the model has been reliable on labs it was not trained on.",
   },
   leukemic: {
     stamp: "Leukemic",
     line1: "Reads as a",
     line2: "leukemic blast.",
-    body: "The calibrated score sits above the upper edge of the band. On validation subjects, scores this high were mostly lymphoblasts, but large normal cells can land here too.",
+    body: "The calibrated score sits above the upper edge of the band. On labs it was not trained on, scores this high were mostly blasts, but some normal lymphocytes land here too.",
   },
   refer_to_expert: {
     stamp: "Refer to expert",
@@ -124,7 +124,7 @@ export default function ResultPage() {
         </div>
 
         <dl className="facts">
-          <div><dt>Raw ensemble score</dt><dd>{r.prob_raw.toFixed(3)}</dd></div>
+          <div><dt>Raw score</dt><dd>{r.prob_raw.toFixed(3)}</dd></div>
           <div><dt>Model</dt><dd>{r.model_version}</dd></div>
           <div><dt>Analysis time</dt><dd>{r.latency_ms} ms</dd></div>
           <div><dt>Image kept</dt><dd>{RUN_IN_BROWSER ? "never left your browser" : r.image_stored ? "24 h" : "no, hash only"}</dd></div>
@@ -135,14 +135,6 @@ export default function ResultPage() {
             <img src={data.previewDataUrl} alt={`The uploaded cell image, ${data.fileName}`} />
             <figcaption>Specimen · {data.fileName}</figcaption>
           </figure>
-          <figure>
-            {r.heatmap_png_base64 ? (
-              <img src={`data:image/png;base64,${r.heatmap_png_base64}`} alt="Heatmap over the cell: brighter areas pushed the score towards leukemic" />
-            ) : (
-              <p className="small">No heatmap returned.</p>
-            )}
-            <figcaption>Class activation map, averaged over the five ensemble members · brighter = more influence</figcaption>
-          </figure>
         </div>
       </article>
 
@@ -150,10 +142,9 @@ export default function ResultPage() {
         <h2 id="refer-title" style={{ fontSize: 18, margin: 0 }}>What “refer to expert” means</h2>
         <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
           The model has three answers, not two. Scores between {r.band.t_low.toFixed(2)} and {r.band.t_high.toFixed(2)} are where it has been wrong
-          most often, so it hands those cells to a haematologist. On 18 validation subjects (nested cross-fit) this sent {pct(BAND.band.referral_rate)} of cells to review
-          and cut missed leukemic cells from {pct(BAND.fixed.miss_rate)} to {pct(BAND.band.miss_rate)}. The heatmap shows what the model used, not
-          proof that it used the right thing: in testing it leaned heavily on cell size. The score is a research output for one cropped
-          cell, not a probability that a person has leukemia.
+          most often, so it hands those cells to a haematologist. On cells from labs it was not trained on, this sent {pct(BAND.referral_rate)} of
+          cells to review and called {pct(BAND.miss_rate)} of leukemic cells normal. The score is a research output for one cropped cell, not a
+          probability that a person has leukemia.
         </p>
       </section>
 

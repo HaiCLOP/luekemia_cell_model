@@ -16,7 +16,7 @@ COPY api/ api/
 # the cell finder used by /analyze-smear
 COPY src/vision/ src/vision/
 # Weights are not in git. Copy them into models/ before building, or fetch them from the HF model repo.
-COPY models/MH51401122.onnx models/model_meta.json models/cnmc_stain.json models/cell_type_filter.onnx models/cell_type_meta.json models/
+COPY models/MH51401102.onnx models/model_meta.json models/cnmc_stain.json models/
 
 USER app
 EXPOSE 7860

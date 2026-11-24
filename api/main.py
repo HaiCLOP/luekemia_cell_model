@@ -12,7 +12,6 @@ import io
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Literal
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -26,7 +25,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from api.db import Database
-from api.inference import FoundationModel, Model
+from api.inference import Model
 from api.quality import check as check_input
 from api.schemas import (DISCLAIMER, Band, FeedbackRequest, FeedbackResponse, HealthResponse, ModelCard,
                          PredictResponse, SmearResponse)
@@ -132,7 +131,7 @@ def active_model():
     m = state["model"].meta
     return ModelCard(name=m["name"], architecture=m["architecture"], temperature=m["temperature"],
                      band=Band(t_low=m["t_low"], t_high=m["t_high"]), band_target=m["band_target"],
-                     metrics=m["metrics"], input=m["input"], exported=m["exported"])
+                     metrics=m["metrics"], input=m["input"], exported=m.get("exported", ""))
 
 
 @app.post("/predict", response_model=PredictResponse)
@@ -165,6 +164,10 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
     # ONNX Runtime is blocking CPU work; keep it off the event loop. The semaphore bounds concurrent runs.
     async with _infer_slots:
         pred = await run_in_threadpool(state["model"].predict, img)
+    if not pred.kept:
+        raise InputRejected("not_lymphoid",
+                            "The model's cell filter says this is not a lymphocyte or blast (for example a neutrophil or "
+                            "monocyte). The model only reads lymphocytes and blasts, so no score is given.")
     if pred.max_abs_logit > state["model"].ood_logit:
         raise InputRejected("out_of_distribution",
                             "The model's internal scores for this image are far outside anything it produced on its training "
@@ -177,7 +180,7 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
     m = state["model"]
     return PredictResponse(prediction_id=prediction_id, model_version=m.meta["name"], prob_raw=round(pred.prob_raw, 4),
                            prob_calibrated=round(pred.prob_calibrated, 4), decision=pred.decision,
-                           band=Band(t_low=m.t_low, t_high=m.t_high), heatmap_png_base64=pred.heatmap_png_base64,
+                           band=Band(t_low=m.t_low, t_high=m.t_high),
                            latency_ms=pred.latency_ms, image_stored=stored)
 
 
@@ -188,10 +191,9 @@ SMEAR_MAX_BYTES = 10 * 1024 * 1024
 @limiter.limit(os.getenv("SMEAR_RATE_LIMIT", "10/minute"))
 async def analyze_smear(request: Request, file: UploadFile = File(...),
                         um_per_px: float | None = Form(None, gt=0.01, lt=5.0),
-                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000),
-                        model: Literal["ensemble", "dinobloom"] = Form("ensemble")):
-    """Find white cells in a stained peripheral-blood smear image, score each lymphoid-like cell with the
-    single-cell model after putting it on C-NMC scale, and summarise. Nothing is stored."""
+                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000)):
+    """Find white cells in a stained peripheral-blood smear image, put each on C-NMC scale, let the model's cell
+    filter keep lymphocytes and blasts, score those, and summarise. Nothing is stored."""
     data = await file.read(SMEAR_MAX_BYTES + 1)
     if len(data) > SMEAR_MAX_BYTES:
         raise HTTPException(413, "Image is larger than 10 MB.")
@@ -208,19 +210,9 @@ async def analyze_smear(request: Request, file: UploadFile = File(...),
         raise HTTPException(415, f"Unsupported image type {fmt}. Use PNG, JPEG or BMP.")
     if min(img.size) < 128:
         raise InputRejected("insufficient_image_quality", "A smear image should be at least 128 x 128 px.")
-    scorer = state["model"] if model == "ensemble" else await run_in_threadpool(_foundation)
     async with _infer_slots:
-        out = await run_in_threadpool(analyse_smear, scorer, img, um_per_px, rbc_diameter_px)
+        out = await run_in_threadpool(analyse_smear, state["model"], img, um_per_px, rbc_diameter_px)
     return out
-
-
-def _foundation() -> FoundationModel:
-    """DinoBloom is loaded on first use only (about 90 MB of weights, about 350 MB in memory)."""
-    if "foundation" not in state:
-        if not (MODEL_DIR / FoundationModel.META).exists():
-            raise HTTPException(503, "The DinoBloom model is not installed on this server.")
-        state["foundation"] = FoundationModel(MODEL_DIR)
-    return state["foundation"]
 
 
 @app.post("/feedback", response_model=FeedbackResponse)

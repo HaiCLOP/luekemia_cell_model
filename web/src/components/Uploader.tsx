@@ -135,7 +135,7 @@ export function Uploader() {
         <span role="status" aria-live="polite" className="small">
           {!busy ? "" : download != null
             ? `Downloading the model, ${Math.round(100 * download)}% (about ${MODEL_MB} MB, only the first time)`
-            : RUN_IN_BROWSER ? "Running the five-model ensemble in your browser, a few seconds." : "Running the five-model ensemble, usually under a second."}
+            : RUN_IN_BROWSER ? "Running the model in your browser, a few seconds." : "Running the model, usually under a second."}
         </span>
       </div>
 

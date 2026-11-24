@@ -27,9 +27,9 @@ $model | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 "$dst\model-metada
 $instance = [ordered]@{
   ownerSlug          = $Owner
   modelSlug          = "cell-triage"
-  instanceSlug       = "mh51401122"
+  instanceSlug       = "mh51401102"
   framework          = "onnx"
-  overview           = "Five-seed EfficientNet-B0 ensemble, one ONNX graph. Input: image float32 [B,3,224,224], ImageNet-normalised. Outputs: logits [B,5], cam [B,7,7]. Apply temperature and band from model_meta.json. Research demo, not for clinical use."
+  overview           = "MH51401102: frozen DinoBloom-B with two linear heads, one ONNX graph (8-bit weights). Input: image float32 [B,3,224,224], ImageNet-normalised. Outputs: logit [B] (blast vs normal), keep_logit [B] (cell filter). Apply temperature, band and filter threshold from model_meta.json. Research demo, not for clinical use."
   usage              = "See https://github.com/HaiCLOP/luekemia_cell_model (api/inference.py) for preprocessing, calibration and the referral band."
   licenseName        = "CC BY 4.0"
   fineTunable        = $false
@@ -37,5 +37,5 @@ $instance = [ordered]@{
   modelInstanceType  = "Unspecified"
 }
 $instance | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 "$dst\onnx\model-instance-metadata.json"
-Copy-Item models\MH51401122.onnx, models\model_meta.json "$dst\onnx\"
+Copy-Item models\MH51401102.onnx, models\model_meta.json "$dst\onnx\"
 Get-ChildItem -Recurse $dst -File | ForEach-Object { "{0,12:N0}  {1}" -f $_.Length, $_.Name }

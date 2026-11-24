@@ -15,6 +15,17 @@ export default async function ModelCard() {
   const b = results.band;
   const e = results.explain;
   const t = results.test!;
+  const dep = results.deployed;
+  const ob = dep.band_out_of_lab;
+  const idb = dep.all_idb2!;
+  const af = idb.after_filter;
+  const bccd = dep.bccd_healthy_called_leukemic["called_leukemic_at_0.5"];
+  const old = results.retired.name;
+  const LAB: Record<string, string> = {
+    cnmc: "C-NMC 2019, AIIMS New Delhi (26 test subjects)",
+    jhu: "DeepAPL, Johns Hopkins",
+    lmu: "AML-Cytomorphology, LMU Munich",
+  };
 
   return (
     <div className="wrap section" style={{ paddingTop: 48 }}>
@@ -26,8 +37,9 @@ export default async function ModelCard() {
           <em>and what it is not.</em>
         </h1>
         <p className="lede" style={{ marginTop: 20 }}>
-          A research model that classifies single white blood cell images as acute lymphoblastic leukemia (ALL) or normal, with
-          calibrated confidence and a refer-to-expert band. It is not a diagnostic device and has not been clinically validated.
+          A research model that reads single white blood cells, alone or cut from a smear, and scores each as a leukemic blast or a
+          normal lymphocyte, with calibrated confidence and a refer-to-expert band. It is not a diagnostic device and has not been
+          clinically validated.
         </p>
       </header>
 
@@ -37,10 +49,11 @@ export default async function ModelCard() {
           <table>
             <tbody>
               <tr><th scope="row">Architecture</th><td>{m.architecture}</td></tr>
-              <tr><th scope="row">Pretraining</th><td>ImageNet, then two-stage fine-tuning (head, then last blocks)</td></tr>
-              <tr><th scope="row">Calibration</th><td>Temperature {m.temperature.toFixed(4)} on the ensemble logit</td></tr>
+              <tr><th scope="row">Backbone</th><td>DinoBloom-B (Koch et al., MICCAI 2024), a DINOv2 model trained on blood cells, frozen; weights Apache-2.0</td></tr>
+              <tr><th scope="row">Heads</th><td>Two linear heads: blast vs normal, and a cell filter that sets aside cells that are not lymphocytes or blasts</td></tr>
+              <tr><th scope="row">Calibration</th><td>Temperature {m.temperature.toFixed(4)}, fitted on out-of-lab predictions only</td></tr>
               <tr><th scope="row">Referral band</th><td>[{m.t_low.toFixed(2)}, {m.t_high.toFixed(2)}], chosen for {m.band_target}</td></tr>
-              <tr><th scope="row">Runtime</th><td>ONNX Runtime on CPU, {results.model.onnx_mb} MB, about 70 ms per cell with heatmap</td></tr>
+              <tr><th scope="row">Runtime</th><td>ONNX Runtime, {results.model.onnx_mb} MB with 8-bit weights, in your browser or on the API</td></tr>
             </tbody>
           </table>
           <p className="small" style={{ marginBottom: 0 }}>
@@ -48,28 +61,79 @@ export default async function ModelCard() {
           </p>
         </div>
         <div className="card">
-          <h2 className="eyebrow">Data</h2>
+          <h2 className="eyebrow">Training data · three labs</h2>
           <table>
             <tbody>
-              <tr><th scope="row">Source</th><td>C-NMC 2019 (ISBI challenge), via TCIA, CC BY 3.0</td></tr>
-              <tr><th scope="row">After audit</th><td>{d.images.toLocaleString("en-IN")} cells from {d.subjects} independent subjects</td></tr>
-              <tr><th scope="row">Removed</th><td>{d.corrupt_removed} corrupt files, {d.duplicates_removed} pixel-identical copies</td></tr>
-              <tr><th scope="row">Split</th><td>By subject, never by image: train {d.splits.train.subjects}, validation {d.splits.val.subjects}, test {d.splits.test.subjects} subjects</td></tr>
-              <tr><th scope="row">ID aliasing</th><td>{d.merged_groups} groups of patient IDs shared identical images and were merged into one subject each</td></tr>
+              <tr><th scope="row">New Delhi</th><td>C-NMC 2019 (AIIMS), B-ALL lymphoblasts vs normal B-lymphocytes; its {d.splits.test.subjects} test subjects never used</td></tr>
+              <tr><th scope="row">Baltimore</th><td>DeepAPL (Johns Hopkins), blasts vs lymphocytes, CellaVision</td></tr>
+              <tr><th scope="row">Munich</th><td>AML-Cytomorphology (LMU, TCIA, CC BY 3.0), myeloblasts vs typical lymphocytes</td></tr>
+              <tr><th scope="row">Same form</th><td>Every outside cell is cut out with the website&apos;s own pipeline and colour-matched to C-NMC</td></tr>
+              <tr><th scope="row">Weighting</th><td>Each lab counts equally; classes balanced within each lab</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
+      <section style={{ marginTop: 56 }} aria-labelledby="perf-new">
+        <h2 id="perf-new" className="display">Performance on <em>labs it never saw.</em></h2>
+        <p className="lede">
+          A model that only ever sees one lab learns that lab. Every number here is from cells of a lab the classifier was not fitted on.
+        </p>
+        <div className="grid-2" style={{ marginTop: 20 }}>
+          <div className="card table-wrap">
+            <h3 className="eyebrow">Leave one lab out</h3>
+            <table>
+              <caption>Train on two labs, test on the third, ROC-AUC per cell.</caption>
+              <thead><tr><th scope="col">Held-out lab</th><th scope="col" className="num">ROC-AUC</th></tr></thead>
+              <tbody>
+                {Object.entries(dep.leave_one_lab_out_roc_auc).map(([k, v]) => (
+                  <tr key={k}><td>{LAB[k] ?? k}</td><td className="num">{f3(v)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="small" style={{ marginBottom: 0 }}>
+              Pooled over the three held-out labs the referral band sent {pct(ob.referral_rate)} of cells to review, called {pct(ob.miss_rate)} of
+              leukemic cells normal and {pct(ob.false_alarm_rate)} of normal cells leukemic.
+            </p>
+          </div>
+          <div className="card table-wrap">
+            <h3 className="eyebrow">Outside tests · used for nothing else</h3>
+            <table>
+              <thead><tr><th scope="col">Test</th><th scope="col" className="num">{m.name}</th><th scope="col" className="num">{old} (retired)</th></tr></thead>
+              <tbody>
+                <tr className="hl"><td>ALL-IDB2 (Milan), {idb.cells_cut_out} cells, ROC-AUC</td><td className="num">{f3(idb.roc_auc)} <span className="ci">{ci(idb.roc_auc_ci95)}</span></td><td className="num">{f3(idb.retired_MH51401122_roc_auc)}</td></tr>
+                <tr><td>Taleqani ALL smears, about 2,700 smears, ROC-AUC</td><td className="num">{f3(dep.taleqani_smear_roc_auc)}</td><td className="num">{f3(dep.taleqani_smear_roc_auc_retired)}</td></tr>
+                <tr><td>BCCD healthy donors, normal cells called leukemic</td><td className="num">{pct(bccd)}</td><td className="num">–</td></tr>
+              </tbody>
+            </table>
+            <p className="small" style={{ marginBottom: 0 }}>
+              On ALL-IDB2, after the cell filter ({af.cells} cells): ROC-AUC {f3(af.roc_auc)}; at 0.5 it caught {pct(af["recall_at_0.5"])} of blasts
+              and called {pct(af["specificity_at_0.5"])} of normal cells correctly. The band missed {pct(af.band.miss_rate)} of blasts and referred{" "}
+              {pct(af.band.referral_rate)} of cells. Intervals resample images, because ALL-IDB2 publishes no patient IDs.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="note" style={{ marginTop: 56 }} aria-labelledby="retired">
+        <h2 id="retired" style={{ fontSize: 18, margin: 0 }}>Below: the C-NMC study of the retired model {old}</h2>
+        <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
+          {old} ({results.retired.architecture}) was trained and tested on C-NMC alone. It scored well there but did not transfer
+          to other labs, which is why it was replaced. Its study is kept as the record of how the data were audited, split and
+          evaluated: {d.images.toLocaleString("en-IN")} cells from {d.subjects} independent subjects after removing {d.corrupt_removed} corrupt
+          files and {d.duplicates_removed} copies, split by subject (train {d.splits.train.subjects}, validation {d.splits.val.subjects}, test {d.splits.test.subjects}).
+        </p>
+      </section>
+
       <section style={{ marginTop: 56 }} aria-labelledby="perf">
-        <h2 id="perf" className="display">Performance on <em>validation subjects.</em></h2>
+        <h2 id="perf" className="display">{old} on <em>C-NMC validation subjects.</em></h2>
         <p className="lede">
           The comparison below is on the validation subjects, with 95% intervals from resampling whole subjects. The final test on
           {t.subjects} separate subjects, run once, is further down: PR-AUC {f3(t.pr_auc)}.
         </p>
         <div className="card table-wrap" style={{ marginTop: 20 }}>
           <table>
-            <caption>Validation ({results.headline.split}), threshold 0.5 on the uncalibrated score. The highlighted row is the deployed model; the others are single-seed comparisons. ECE uses {results.headline.ece_bins} equal-width bins.</caption>
+            <caption>Validation ({results.headline.split}), threshold 0.5 on the uncalibrated score. The highlighted row is {old}; the others are single-seed comparisons. ECE uses {results.headline.ece_bins} equal-width bins.</caption>
             <thead>
               <tr><th scope="col">Model</th><th scope="col" className="num">PR-AUC</th><th scope="col" className="num">ROC-AUC</th><th scope="col" className="num">Recall (ALL)</th><th scope="col" className="num">Specificity</th><th scope="col" className="num">ECE (raw)</th></tr>
             </thead>
@@ -129,7 +193,7 @@ export default async function ModelCard() {
       </section>
 
       <section className="card" style={{ marginTop: 40 }} aria-labelledby="ext">
-        <h2 id="ext" className="eyebrow">Final test · {t.subjects} held-out subjects · run once on {t.date}</h2>
+        <h2 id="ext" className="eyebrow">{old} · C-NMC final test · {t.subjects} held-out subjects · run once on {t.date}</h2>
         <p className="small" style={{ marginTop: 6 }}>
           These subjects were never used for training, picking checkpoints, calibration or the referral band. The model, temperature
           and band were frozen first; the run is recorded with its code version and model fingerprint.
@@ -139,7 +203,7 @@ export default async function ModelCard() {
           <tbody>
             <tr className="hl"><td>PR-AUC</td><td className="num">{f3(t.pr_auc)} <span className="ci">{ci(t.pr_auc_ci)}</span></td><td className="num">{f3(results.headline.pr_auc)}</td></tr>
             <tr><td>ROC-AUC</td><td className="num">{f3(t.roc_auc)} <span className="ci">{ci(t.roc_auc_ci)}</span></td><td className="num">{f3(results.headline.roc_auc)}</td></tr>
-            <tr><td>Calibration error (ECE, deployed)</td><td className="num">{f3(t.ece)}</td><td className="num">{f3(results.headline.ece_calibrated)}</td></tr>
+            <tr><td>Calibration error (ECE, calibrated)</td><td className="num">{f3(t.ece)}</td><td className="num">{f3(results.headline.ece_calibrated)}</td></tr>
             <tr><td>Leukemic cells missed (referral band)</td><td className="num">{pct(t.band.miss_rate)}</td><td className="num">{pct(b.band.miss_rate)}</td></tr>
             <tr><td>Cells referred to an expert</td><td className="num">{pct(t.band.referral_rate)}</td><td className="num">{pct(b.band.referral_rate)}</td></tr>
             <tr><td>Normal cells called leukemic</td><td className="num">{pct(t.band.false_alarm_rate)}</td><td className="num">{pct(b.band.false_alarm_rate)}</td></tr>
@@ -147,13 +211,13 @@ export default async function ModelCard() {
         </table>
         <p className="small" style={{ marginBottom: 0 }}>
           Lower than validation, as expected, and the intervals are wide with {t.subjects} subjects. The band kept its miss rate on new
-          people by referring more cells. ALL-IDB2 access was never granted; outside-lab smear tests (model card, smear section)
-          show the model does not transfer to other labs.
+          people by referring more cells. On ALL-IDB2 and on other hospitals&apos; smears it fell much further (see the outside tests
+          above).
         </p>
       </section>
 
       <section style={{ marginTop: 56 }} aria-labelledby="explain">
-        <h2 id="explain" className="display">What the model <em>actually uses.</em></h2>
+        <h2 id="explain" className="display">What {old} <em>actually used.</em></h2>
         <div className="grid-2" style={{ marginTop: 20 }}>
           <div className="card">
             <ul className="limits" style={{ paddingLeft: 18, margin: 0 }}>
@@ -175,10 +239,11 @@ export default async function ModelCard() {
       <section className="card" style={{ marginTop: 40 }} aria-labelledby="lim">
         <h2 id="lim" className="eyebrow">Limitations</h2>
         <ul className="limits" style={{ paddingLeft: 18 }}>
-          <li>Single-cell crops from one dataset and one acquisition setup. Whole slides, other stains and other microscopes are out of scope.</li>
-          <li>Only {d.subjects} independent subjects; intervals are wide and most differences between models are not established.</li>
-          <li>Over-reliance on cell size, which depends on magnification. Expect a drop on images from other labs.</li>
-          <li>On {t.subjects} held-out subjects, PR-AUC fell from {f3(results.headline.pr_auc)} on validation to {f3(t.pr_auc)}.</li>
+          <li>Three training labs is still few. On held-out C-NMC subjects ROC-AUC was only {f3(dep.leave_one_lab_out_roc_auc.cnmc)}: B-ALL blasts and normal B-cells there are hard to separate for a model that learned blasts mostly from myeloid leukemias elsewhere.</li>
+          <li>Two of the three labs have myeloid (AML) blasts, not lymphoblasts. The model learns &quot;blast vs lymphocyte&quot;, not ALL specifically.</li>
+          <li>The band costs a lot of review: out of lab about half of all cells are referred to keep missed leukemic cells near 2%.</li>
+          <li>Calibration drifts on a new lab: on ALL-IDB2 the calibration error was about 0.19, so treat scores as rankings first.</li>
+          <li>Healthy-donor smears are not clean: {pct(bccd)} of BCCD normal cells that passed the filter were called leukemic.</li>
           <li>Images that fail the input checks (not square, no black background, several objects, no detail) get no score at all. These checks catch obvious misuse; they are not a full out-of-distribution detector.</li>
           <li>The score describes one cropped cell. It is not a probability that a person has leukemia.</li>
           <li>Not a medical device. Do not use it to make or support clinical decisions.</li>

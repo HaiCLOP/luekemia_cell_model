@@ -6,7 +6,9 @@ import results from "@/data/results.json";
 const pct = (v: number, d = 1) => `${(100 * v).toFixed(d)}%`;
 
 export default function Home() {
-  const b = results.band;
+  const d = results.deployed;
+  const b = d.band_out_of_lab;
+  const idb = d.all_idb2!;
   return (
     <>
       <div className="wrap">
@@ -23,9 +25,9 @@ export default function Home() {
               point: when the model is unsure, it hands the cell to a person instead of guessing.
             </p>
             <div className="hero-meta">
-              <div><span className="label">Validation PR-AUC</span><b>{results.headline.pr_auc.toFixed(3)}</b></div>
-              <div><span className="label">Subjects</span><b>{results.data.subjects}</b></div>
-              <div><span className="label">Per cell</span><b>~65 ms</b></div>
+              <div><span className="label">Unseen-lab ROC-AUC</span><b>{idb.roc_auc.toFixed(3)}</b></div>
+              <div><span className="label">Training labs</span><b>{results.model.training_labs.length}</b></div>
+              <div><span className="label">Model</span><b>{results.model.name}</b></div>
             </div>
           </div>
 
@@ -36,8 +38,7 @@ export default function Home() {
             <Reticle className="scope-reticle" />
             <figcaption className="scope-caption">
               C-NMC 2019 · subject 22 · <b>ALL</b>
-              <br />
-              model: leukemic, p = 0.72
+
             </figcaption>
           </figure>
         </section>
@@ -46,32 +47,30 @@ export default function Home() {
 
         <section className="report" aria-label="Key results">
           <div>
-            <span className="label">Cells audited</span>
-            <div className="v">{results.data.images.toLocaleString("en-IN")}</div>
-            <div className="s">{results.data.corrupt_removed} corrupt and {results.data.duplicates_removed} duplicates removed</div>
+            <span className="label">ALL-IDB2, a lab never seen</span>
+            <div className="v">{idb.roc_auc.toFixed(3)}</div>
+            <div className="s">ROC-AUC on {idb.cells_cut_out} cells (95% CI {idb.roc_auc_ci95[0].toFixed(2)} to {idb.roc_auc_ci95[1].toFixed(2)})</div>
           </div>
           <div>
-            <span className="label">Independent subjects</span>
-            <div className="v">{results.data.subjects}</div>
-            <div className="s">split by person, never by image</div>
+            <span className="label">Another hospital&apos;s smears</span>
+            <div className="v">{d.taleqani_smear_roc_auc.toFixed(3)}</div>
+            <div className="s">ROC-AUC per smear (Taleqani ALL); {d.taleqani_smear_roc_auc_retired.toFixed(3)} for the retired model</div>
           </div>
           <div>
-            <span className="label">Calibration error (ECE)</span>
-            <div className="v">{results.headline.ece_calibrated.toFixed(3)}</div>
-            <div className="s">deployed, temperature scaled; {results.headline.ece_raw.toFixed(3)} before scaling</div>
+            <span className="label">Leave one lab out</span>
+            <div className="v">{Math.min(...Object.values(d.leave_one_lab_out_roc_auc)).toFixed(2)}–{Math.max(...Object.values(d.leave_one_lab_out_roc_auc)).toFixed(2)}</div>
+            <div className="s">ROC-AUC on each lab when trained on the other two</div>
           </div>
           <div>
             <span className="label">Missed leukemic cells</span>
-            <div className="v">
-              {pct(b.fixed.miss_rate)}<span className="arr" aria-label="to">→</span><span className="to">{pct(b.band.miss_rate)}</span>
-            </div>
-            <div className="s">with {pct(b.band.referral_rate)} of cells referred</div>
+            <div className="v">{pct(b.miss_rate)}</div>
+            <div className="s">with {pct(b.referral_rate)} of cells referred, out of lab</div>
           </div>
         </section>
         <p className="small" style={{ marginTop: 12 }}>
-          Validation results on 18 subjects not used for training; the referral figures are nested cross-fitted over those subjects.
-          On the final test, {results.test?.subjects} more subjects evaluated once, PR-AUC was {results.test?.pr_auc.toFixed(3)} and the band missed{" "}
-          {results.test ? pct(results.test.band.miss_rate) : ""} of leukemic cells.
+          Every figure comes from cells of a lab the classifier was not fitted on. The referral band is set so that, out of lab, no
+          more than 2% of leukemic cells are called normal; the price is that about half of all cells go to a person. ALL-IDB2
+          intervals resample images, because the dataset publishes no patient IDs.
         </p>
       </div>
 
@@ -84,12 +83,12 @@ export default function Home() {
           <li>
             <span className="no">STEP 01</span>
             <h3>Mount the cell</h3>
-            <p>Upload a segmented white blood cell image, like the C-NMC 2019 crops the model learned from.</p>
+            <p>Upload one white blood cell cut out on a black background, or a whole smear on the Smear page.</p>
           </li>
           <li>
             <span className="no">STEP 02</span>
-            <h3>Five models read it</h3>
-            <p>Five EfficientNet-B0 networks trained from different seeds score the cell. Their average is calibrated so 0.8 means about 80%.</p>
+            <h3>The model reads it</h3>
+            <p>A blood-cell foundation model describes the cell. A filter checks it is a lymphocyte or blast, then a classifier trained on three labs scores it.</p>
           </li>
           <li>
             <span className="no">STEP 03</span>
@@ -102,7 +101,7 @@ export default function Home() {
           <li>
             <span className="no">STEP 04</span>
             <h3>Check the evidence</h3>
-            <p>A heatmap shows where the model looked, and you can tell us when it got a cell wrong.</p>
+            <p>The model card shows how it did on labs it never saw, and you can tell us when it got a cell wrong.</p>
           </li>
         </ol>
         <div className="actions" style={{ marginTop: 32 }}>

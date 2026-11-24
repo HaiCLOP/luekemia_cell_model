@@ -29,10 +29,12 @@ def ci(s: str):
     return [float(m[0]), float(m[1])] if len(m) == 2 else None
 
 
-def _final_test():
-    """The one-time sealed test result for the deployed model, if it has been run (reports/final/)."""
-    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())
-    f = REP / "final" / f"test_{meta['onnx_sha256'][:12]}" / "summary.json"
+RETIRED_META = REP / "final" / "retired_MH51401122_model_meta.json"
+
+
+def _final_test(sha: str):
+    """The one-time sealed C-NMC test result for a model artifact, if it has been run (reports/final/)."""
+    f = REP / "final" / f"test_{sha[:12]}" / "summary.json"
     if not f.exists():
         return None
     t = json.loads(f.read_text())
@@ -44,7 +46,8 @@ def _final_test():
 
 def main() -> None:
     cfg = load_config()
-    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())
+    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())       # deployed: MH51401102
+    retired = json.loads(RETIRED_META.read_text())                              # MH51401122, the C-NMC study below
     triage = json.loads((REP / "triage" / "summary.json").read_text())
     expl = json.loads((REP / "explain" / "summary.json").read_text())
 
@@ -67,7 +70,7 @@ def main() -> None:
     bm = binary_metrics(p_ens, y_val, n_bins=cfg["calibration"]["ece_bins"])
     iters = cfg["eval"]["bootstrap_iters"]
     models.append({
-        "name": "Deployed: 5-seed EfficientNet-B0 ensemble", "deployed": True,
+        "name": "MH51401122 (retired): 5-seed EfficientNet-B0 ensemble", "deployed": True,
         "pr_auc": bm["pr_auc"], "pr_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["pr_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
         "roc_auc": bm["roc_auc"], "roc_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["roc_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
         "recall": bm["recall"], "specificity": bm["specificity"], "ece": bm["ece"]})
@@ -95,7 +98,17 @@ def main() -> None:
     out = {
         "model": {"name": meta["name"], "architecture": meta["architecture"], "temperature": meta["temperature"],
                   "t_low": meta["t_low"], "t_high": meta["t_high"], "band_target": meta["band_target"],
-                  "onnx_mb": round((ROOT / "models" / meta["onnx_file"]).stat().st_size / 2**20, 1)},
+                  "onnx_mb": meta["onnx_mb"], "training_labs": meta["training_labs"]},
+        # MH51401102's own evidence: every number is from a lab the classifier was not fitted on
+        "deployed": {"leave_one_lab_out_roc_auc": meta["metrics"]["leave_one_lab_out_roc_auc"],
+                     "band_out_of_lab": meta["band_out_of_lab"],
+                     "all_idb2": meta["metrics"].get("all_idb2"),
+                     "taleqani_smear_roc_auc": meta["metrics"]["taleqani_smear_paired_vs_retired_MH51401122"]["auc_new"],
+                     "taleqani_smear_roc_auc_retired": meta["metrics"]["taleqani_smear_paired_vs_retired_MH51401122"]["auc_old"],
+                     "bccd_healthy_called_leukemic": meta["metrics"]["bccd_healthy_called_leukemic"]},
+        # everything from here down is the C-NMC study of the retired model
+        "retired": {"name": retired["name"], "architecture": retired["architecture"],
+                    "t_low": retired["t_low"], "t_high": retired["t_high"]},
         "data": {"images": len(rows), "subjects": len({r["group_id"] for r in rows}),
                  "patient_ids": len({r["patient_id"] for r in rows}), "splits": splits,
                  "corrupt_removed": 350, "duplicates_removed": 110, "merged_groups": 4},
@@ -117,7 +130,7 @@ def main() -> None:
                     "size_rho_normal_seeds": [min(seeds), max(seeds)],
                     "size_rho_scalejit": float(size["abl_scalejit_s42"]["rho_size_normal"]) if "abl_scalejit_s42" in size else None},
         "external": None,
-        "test": _final_test(),
+        "test": _final_test(retired["onnx_sha256"]),
         "disclaimer": cfg["disclaimer"],
     }
     (WEB / "src" / "data").mkdir(parents=True, exist_ok=True)

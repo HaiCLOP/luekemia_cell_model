@@ -15,11 +15,10 @@ class Band(BaseModel):
 class PredictResponse(BaseModel):
     prediction_id: str
     model_version: str
-    prob_raw: float = Field(description="Mean leukemic probability of the ensemble members, before calibration")
+    prob_raw: float = Field(description="Leukemic probability before calibration")
     prob_calibrated: float = Field(description="Temperature-scaled probability used for the decision")
     decision: Literal["leukemic", "normal", "refer_to_expert"]
     band: Band
-    heatmap_png_base64: str | None = Field(description="Class activation map over the resized cell, PNG, base64")
     latency_ms: int
     image_stored: bool = False
     disclaimer: str = DISCLAIMER

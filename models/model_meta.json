@@ -1,73 +1,114 @@
 {
-  "name": "MH51401122",
-  "architecture": "EfficientNet-B0 (timm efficientnet_b0.ra_in1k), deep ensemble of 5 seeds",
-  "seeds": [
-    42,
-    43,
-    44,
-    45,
-    46
+  "name": "MH51401102",
+  "former_name": "DinoBloom-B-3lab",
+  "architecture": "DinoBloom-B (frozen DINOv2 ViT-B/14, MarrLab) + logistic regression on three labs + DinoBloom cell filter",
+  "task": "leukemic blast vs normal lymphocyte",
+  "training_labs": [
+    "C-NMC 2019 (AIIMS New Delhi)",
+    "DeepAPL (Johns Hopkins)",
+    "AML-Cytomorphology_LMU (LMU Munich)"
   ],
   "input": {
     "size": 224,
     "mean": [
-      0.485,
-      0.456,
-      0.406
+      0.48500001430511475,
+      0.4560000002384186,
+      0.4059999883174896
     ],
     "std": [
-      0.229,
-      0.224,
-      0.225
+      0.2290000021457672,
+      0.2240000069141388,
+      0.22499999403953552
     ],
     "resize": "bilinear, antialiased"
   },
-  "temperature": 1.0728,
-  "t_low": 0.2,
+  "outputs": {
+    "logit": "blast vs normal",
+    "keep_logit": "cell filter (keep = lymphocyte or blast)"
+  },
+  "temperature": 2.674696265496208,
+  "t_low": 0.17530165913912382,
   "t_high": 0.5,
-  "band_target": "leukemic miss rate <= 2% on validation subjects",
+  "band_target": "leukemic miss rate <= 2% on out-of-lab predictions (each lab scored by a model fitted on the other two)",
+  "band_out_of_lab": {
+    "t_low": 0.17530165913912382,
+    "t_high": 0.5,
+    "referral_rate": 0.5561623487264625,
+    "miss_rate": 0.01893369246613325,
+    "false_alarm_rate": 0.16783557373855446,
+    "auto_accuracy": 0.8068707549955705,
+    "coverage": 0.4438376512735375,
+    "target_miss_rate": 0.02
+  },
+  "filter_threshold_logit": -1.7879897053674423,
+  "filter_threshold_prob": 0.14331936836242676,
+  "ood_max_abs_logit": 12.9,
+  "quant_check": {
+    "weights": "8-bit weight-only (MatMulNBits, block 32)",
+    "cells": 300,
+    "mean_abs_prob_diff": 0.001358481568588886,
+    "max_abs_prob_diff": 0.005646521806430327,
+    "filter_agreement": 1.0
+  },
   "metrics": {
-    "split": "validation (18 subjects); test results under metrics.test",
-    "pr_auc": 0.9737394217322837,
-    "roc_auc": 0.952181696374639,
-    "ece_calibrated": 0.0231927498937986,
-    "band_crossfit": {
-      "referral_rate": 0.08066298342541436,
-      "miss_rate": 0.02736318407960199,
-      "false_alarm_rate": 0.1837748344370861,
-      "auto_accuracy": 0.9134615384615384,
-      "target_miss_rate": 0.02,
-      "n_referred": 146,
-      "misses_avoided_per_100_referred": 39.72602739726028
+    "leave_one_lab_out_roc_auc": {
+      "cnmc": 0.6521167809951013,
+      "jhu": 0.9403450408650426,
+      "lmu": 0.8307478120189042
     },
-    "band_crossfit_method": "nested: temperature and band both fitted on 2/3 of validation subjects, scored on the other 1/3, same folds",
-    "ece_raw": 0.021033921719418727,
-    "test": {
-      "subjects": 26,
-      "cells": 2414,
-      "evaluated": "2026-11-11",
-      "pr_auc": 0.9321554503705425,
-      "pr_auc_ci95": [
-        0.8197762381684959,
-        0.9734228566038745
+    "taleqani_smear_roc_auc_all_scored": 0.739321498394079,
+    "bccd_healthy_called_leukemic": {
+      "cells_after_filter": 53,
+      "called_leukemic_at_0.5": 0.2641509433962264
+    },
+    "taleqani_smear_paired_vs_retired_MH51401122": {
+      "smears": 2674,
+      "auc_old": 0.5670364942563733,
+      "auc_new": 0.8276506002086624,
+      "difference": 0.2606141059522892,
+      "difference_ci95": [
+        0.21412456147979478,
+        0.30691011373296917
+      ]
+    },
+    "all_idb2": {
+      "evaluated": "2026-11-24",
+      "tiles": 260,
+      "cells_cut_out": 255,
+      "roc_auc": 0.9329230769230769,
+      "roc_auc_ci95": [
+        0.8972488823493318,
+        0.9614861194320818
       ],
-      "roc_auc": 0.8898223888144714,
-      "ece_calibrated": 0.03175393090569199,
-      "band": {
-        "referral_rate": 0.12344656172328086,
-        "miss_rate": 0.027967681789931635,
-        "false_alarm_rate": 0.28819875776397513
-      }
+      "pr_auc": 0.9150238371453564,
+      "after_filter": {
+        "cells": 212,
+        "roc_auc": 0.9424486803519061,
+        "roc_auc_ci95": [
+          0.904454309135935,
+          0.972020060235753
+        ],
+        "pr_auc": 0.9534680841960792,
+        "recall_at_0.5": 0.9838709677419355,
+        "specificity_at_0.5": 0.7613636363636364,
+        "band": {
+          "t_low": 0.17530165913912382,
+          "t_high": 0.5,
+          "referral_rate": 0.32075471698113206,
+          "miss_rate": 0.0,
+          "false_alarm_rate": 0.23863636363636365,
+          "auto_accuracy": 0.8541666666666666,
+          "coverage": 0.6792452830188679
+        }
+      },
+      "interval_note": "image-level bootstrap (ALL-IDB2 publishes no patient IDs)",
+      "retired_MH51401122_roc_auc": 0.7276307692307692
     }
   },
-  "git_sha": null,
-  "config_hash": "a3ee6923173a",
-  "onnx_file": "MH51401122.onnx",
-  "onnx_sha256": "bad021f682260b87973c44a677288d8d0489745429fc4288d919f9bb997d57d3",
-  "exported": "2026-11-09T18:18:20.894193+00:00",
+  "onnx_file": "MH51401102.onnx",
+  "onnx_sha256": "e666d64d0cd15cb0bce97df9c2f276ba4475456674175fa2eb9294c28ba92911",
+  "onnx_mb": 94.3,
+  "weights_licence": "DinoBloom weights: Apache-2.0 (Koch et al., MICCAI 2024)",
   "disclaimer": "Research demo. Not for clinical use.",
-  "source_note": "Exported before the repository had commits. The export code is in commit 956490a; the ONNX file is identified by onnx_sha256.",
-  "ood_max_abs_logit": 25.0,
-  "ood_note": "A cell is refused as out of distribution if any ensemble member's |logit| exceeds this. On the 1,810 C-NMC validation cells the largest was 14.9 (99th percentile 12.3); smear crops in raw colours reached 12,000+.",
-  "former_name": "effb0-ens5-v1"
+  "exported": "2026-11-13T15:06:51+00:00"
 }

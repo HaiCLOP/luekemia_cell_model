@@ -1,13 +1,16 @@
-// Runs the deployed model (MH51401122, 5-network ONNX ensemble) inside the visitor's browser with ONNX Runtime Web.
-// The image never leaves the device. This mirrors api/inference.py and api/quality.py step for step:
-// input checks -> resize to 224 -> ImageNet normalisation -> five member logits -> mean probability ->
-// temperature scaling -> refer-to-expert band, plus the out-of-distribution guard and the activation heatmap.
+// Runs the deployed model (MH51401102: frozen DinoBloom-B with a blast-vs-normal head and a cell-filter head, one ONNX
+// graph) inside the visitor's browser with ONNX Runtime Web. The image never leaves the device. This mirrors
+// api/inference.py and api/quality.py step for step: input checks -> resize to 224 -> ImageNet normalisation ->
+// blast logit and filter logit -> cell filter -> temperature scaling -> refer-to-expert band, plus the
+// out-of-distribution guard.
 import meta from "@/data/model_meta.json";
 import type { PredictResponse } from "@/lib/api";
 
+// The Hugging Face copy still carries its pre-rename file name; the bytes are MH51401102's and are checked against
+// model_meta.json's SHA-256 before use. Point NEXT_PUBLIC_MODEL_URL at MH51401102.onnx once it is uploaded there.
 export const MODEL_URL =
-  process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/MH51401122.onnx";
-export const MODEL_MB = 76;
+  process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/dinobloom_b_3lab.onnx";
+export const MODEL_MB = Math.round(meta.onnx_mb);
 
 type Ort = typeof import("onnxruntime-web");
 let ortPromise: Promise<Ort> | null = null;
@@ -24,7 +27,7 @@ async function loadOrt(): Promise<Ort> {
   return ortPromise;
 }
 
-/** Downloads the model once (about 76 MB) and keeps it in the browser's cache storage for later visits. */
+/** Downloads the model once (about 94 MB) and keeps it in the browser's cache storage for later visits. */
 async function fetchModel(onProgress?: (fraction: number) => void, url = MODEL_URL, sha256 = meta.onnx_sha256): Promise<ArrayBuffer> {
   const CACHE_NAME = `cell-triage-model-${sha256.slice(0, 12)}`;
   let cache: Cache | null = null;
@@ -311,49 +314,13 @@ export function checkInput(img: Decoded): void {
     throw new InputRejected("unsupported_input", "The image is not close to square. Upload one cropped cell in a square frame.");
   if (fgShare < MIN_FG) throw new InputRejected("insufficient_image_quality", "The image is almost entirely black. No cell was found.");
   if (borderDark / borderN < MIN_BORDER_DARK)
-    throw new InputRejected("unsupported_input", "This looks like a smear photo or an uncropped field, not one cell cut out on a black background. This page reads one segmented cell; whole smears need the Smear page (local API for now).");
+    throw new InputRejected("unsupported_input", "This looks like a smear photo or an uncropped field, not one cell cut out on a black background. This page reads one segmented cell; for a whole smear use the Smear page.");
   if (fgShare > MAX_FG)
     throw new InputRejected("unsupported_input", "The cell fills the whole frame. The model expects a cell with black background around it.");
   if (largestBlobShare(fg, n) < MIN_MAIN_BLOB)
     throw new InputRejected("unsupported_input", "More than one object was found. Upload a single cell per image.");
   if (contrast < MIN_CONTRAST)
     throw new InputRejected("insufficient_image_quality", "The cell has almost no internal detail (flat or badly out of focus).");
-}
-
-// ------------------------------------------------------------------ heatmap (api/inference.py)
-const LUT_STOPS = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
-const LUT: number[][] = Array.from({ length: 256 }, (_, i) => {
-  const t = (i / 255) * (LUT_STOPS.length - 1);
-  const k = Math.min(LUT_STOPS.length - 2, Math.floor(t)), f = t - k;
-  return [0, 1, 2].map((ch) => LUT_STOPS[k][ch] * (1 - f) + LUT_STOPS[k + 1][ch] * f);
-});
-
-function heatmap(cam: Float32Array, side: number, rgb: Uint8Array, size: number): string {
-  let lo = Infinity, hi = -Infinity;
-  for (const v of cam) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
-  const small = document.createElement("canvas");
-  small.width = small.height = side;
-  const sctx = small.getContext("2d")!;
-  const sd = sctx.createImageData(side, side);
-  for (let i = 0; i < side * side; i++) {
-    const g = Math.round(((cam[i] - lo) / (hi - lo + 1e-8)) * 255);
-    sd.data.set([g, g, g, 255], 4 * i);
-  }
-  sctx.putImageData(sd, 0, 0);
-  const big = document.createElement("canvas");
-  big.width = big.height = size;
-  const bctx = big.getContext("2d")!;
-  bctx.imageSmoothingEnabled = true;
-  bctx.imageSmoothingQuality = "high";
-  bctx.drawImage(small, 0, 0, size, size);
-  const up = bctx.getImageData(0, 0, size, size);
-  for (let i = 0; i < size * size; i++) {
-    const c = LUT[up.data[4 * i]];
-    for (let ch = 0; ch < 3; ch++) up.data[4 * i + ch] = Math.round(0.55 * rgb[3 * i + ch] + 0.45 * c[ch]);
-    up.data[4 * i + 3] = 255;
-  }
-  bctx.putImageData(up, 0, 0);
-  return big.toDataURL("image/png").split(",")[1];
 }
 
 // ------------------------------------------------------------------ prediction
@@ -375,20 +342,19 @@ export async function predictInBrowser(file: File, onProgress?: (fraction: numbe
     for (let ch = 0; ch < 3; ch++)
       x[ch * size * size + i] = (rgb[3 * i + ch] / 255 - meta.input.mean[ch]) / meta.input.std[ch];
   const out = await session.run({ image: new ort.Tensor("float32", x, [1, 3, size, size]) });
-  const logits = out.logits.data as Float32Array;
-  const cam = out.cam.data as Float32Array;
+  const z = (out.logit.data as Float32Array)[0];
+  const keep = (out.keep_logit.data as Float32Array)[0];
 
-  const maxAbs = Math.max(...Array.from(logits, (v) => Math.abs(v)));
-  if (maxAbs > (meta.ood_max_abs_logit ?? 25))
+  if (keep < meta.filter_threshold_logit)
+    throw new InputRejected("not_lymphoid",
+      "The model's cell filter says this is not a lymphocyte or blast (for example a neutrophil or monocyte). The model only reads lymphocytes and blasts, so no score is given.");
+  if (Math.abs(z) > (meta.ood_max_abs_logit ?? 25))
     throw new InputRejected("out_of_distribution",
-      "The model's internal scores for this image are far outside anything it produced on its training data, so any answer would be meaningless. Usually the stain colours, magnification or image source differ from C-NMC.");
+      "The model's internal score for this image is far outside anything it produced on its training data, so any answer would be meaningless. Usually the stain colours, magnification or image source differ a lot from the training labs.");
 
-  const members = Array.from(logits, sigmoid);
-  const pRaw = Math.min(1 - 1e-6, Math.max(1e-6, members.reduce((a, b) => a + b, 0) / members.length));
+  const pRaw = Math.min(1 - 1e-6, Math.max(1e-6, sigmoid(z)));
   const pCal = sigmoid(Math.log(pRaw / (1 - pRaw)) / meta.temperature);
   const decision = pCal < meta.t_low ? "normal" : pCal > meta.t_high ? "leukemic" : "refer_to_expert";
-  const side = Math.round(Math.sqrt(cam.length));
-  const heat = heatmap(cam, side, rgb, size);
   return {
     prediction_id: crypto.randomUUID(),
     model_version: meta.name,
@@ -396,7 +362,6 @@ export async function predictInBrowser(file: File, onProgress?: (fraction: numbe
     prob_calibrated: Math.round(pCal * 1e4) / 1e4,
     decision,
     band: { t_low: meta.t_low, t_high: meta.t_high },
-    heatmap_png_base64: heat,
     latency_ms: Math.round(performance.now() - t0),
     image_stored: false,
     disclaimer: "Research demo. Not for clinical use.",

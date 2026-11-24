@@ -1,14 +1,13 @@
 """CPU inference with ONNX Runtime. No PyTorch dependency.
 
-Pipeline (must match training eval transform): RGB -> resize 224x224 bilinear (antialiased) -> [0,1] ->
-ImageNet normalise -> ensemble logits -> mean of member probabilities -> temperature scaling on the
-ensemble logit -> refer-to-expert band.
+Model MH51401102 (formerly DinoBloom-B-3lab): frozen DinoBloom-B with two linear heads in one ONNX graph,
+`logit` (leukemic blast vs normal lymphocyte, trained on three labs) and `keep_logit` (its cell filter: keep =
+lymphocyte or blast). Pipeline: RGB -> resize 224x224 bilinear (antialiased) -> [0,1] -> ImageNet normalise ->
+logit -> temperature scaling -> refer-to-expert band. There is no heatmap output.
 """
 from __future__ import annotations
 
-import base64
 import hashlib
-import io
 import json
 import os
 import time
@@ -19,22 +18,15 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
-# perceptually ordered dark-to-bright ramp for the heatmap (approximates 'inferno')
-_LUT_STOPS = np.array([[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66],
-                       [245, 125, 21], [250, 193, 39], [252, 255, 164]], dtype=np.float32)
-_LUT = np.stack([np.interp(np.linspace(0, len(_LUT_STOPS) - 1, 256), np.arange(len(_LUT_STOPS)), _LUT_STOPS[:, c])
-                 for c in range(3)], axis=1).astype(np.uint8)
-
 
 @dataclass
 class Prediction:
     prob_raw: float
     prob_calibrated: float
     decision: str
-    member_probs: list[float]
-    heatmap_png_base64: str | None
     latency_ms: int
     max_abs_logit: float = 0.0
+    kept: bool = True            # the cell filter's verdict: False = not a lymphocyte or blast
 
 
 class Model:
@@ -52,8 +44,11 @@ class Model:
         self.std = np.array(inp["std"], dtype=np.float32).reshape(3, 1, 1)
         self.temperature = float(self.meta["temperature"])
         self.t_low, self.t_high = float(self.meta["t_low"]), float(self.meta["t_high"])
-        # out-of-distribution guard: on familiar cells no member's |logit| exceeded ~15 (see model_meta.json)
+        # out-of-distribution guard: 1.5x the largest |logit| seen on the training cells (see model_meta.json)
         self.ood_logit = float(self.meta.get("ood_max_abs_logit", 25.0))
+        self.outputs = [o.name for o in self.session.get_outputs()]
+        self.has_filter = "keep_logit" in self.outputs
+        self.keep_logit_threshold = float(self.meta.get("filter_threshold_logit", 0.0))
 
     @staticmethod
     def _session(path: Path, opts):
@@ -80,9 +75,21 @@ class Model:
         x = (x - self.mean) / self.std
         return x[None].astype(np.float32), rgb
 
+    def logits_and_keep(self, xs: np.ndarray, batch: int = 32) -> tuple[np.ndarray, np.ndarray | None]:
+        """[N, 3, size, size] -> blast logits [N] and the filter's keep mask [N] (None if the graph has no filter)."""
+        zs, ks = [], []
+        for i in range(0, len(xs), batch):
+            out = dict(zip(self.outputs, self.session.run(None, {"image": xs[i:i + batch]})))
+            # "logit" [N] for MH51401102; a retired ensemble graph (first output "logits" [N, members]) also loads
+            zs.append(out["logit"] if "logit" in out else out[self.outputs[0]])
+            if self.has_filter:
+                ks.append(out["keep_logit"])
+        return np.concatenate(zs), (np.concatenate(ks) >= self.keep_logit_threshold) if self.has_filter else None
+
     def cell_logits(self, xs: np.ndarray) -> np.ndarray:
-        """[N, 3, size, size] -> [N, members] logits (the heatmap output is dropped)."""
-        return self.session.run(None, {"image": xs})[0]
+        """[N, 3, size, size] -> [N, members] logits (members = 1 for MH51401102)."""
+        z = self.logits_and_keep(xs)[0]
+        return z if z.ndim == 2 else z[:, None]
 
     def decide(self, p_cal: float) -> str:
         if p_cal < self.t_low:
@@ -92,59 +99,20 @@ class Model:
         return "refer_to_expert"
 
     def calibrate(self, member_logits: np.ndarray) -> tuple[float, float]:
+        """Logit(s) -> (raw, calibrated) probability. One logit for MH51401102; several are averaged as probabilities."""
         p_members = 1.0 / (1.0 + np.exp(-np.clip(member_logits, -50.0, 50.0)))  # clip: no overflow warning, same result
         p_raw = float(np.clip(p_members.mean(), 1e-6, 1 - 1e-6))
         z = np.log(p_raw / (1 - p_raw))
         p_cal = float(1.0 / (1.0 + np.exp(-z / self.temperature)))
         return p_raw, p_cal
 
-    def heatmap(self, cam: np.ndarray, rgb: Image.Image) -> str:
-        c = cam - cam.min()
-        c = c / (c.max() + 1e-8)
-        cam_img = Image.fromarray((c * 255).astype(np.uint8)).resize(rgb.size, Image.BICUBIC)
-        heat = _LUT[np.asarray(cam_img)]
-        base = np.asarray(rgb, dtype=np.float32)
-        blend = (0.55 * base + 0.45 * heat.astype(np.float32)).clip(0, 255).astype(np.uint8)
-        buf = io.BytesIO()
-        Image.fromarray(blend).save(buf, format="PNG", optimize=True)
-        return base64.b64encode(buf.getvalue()).decode("ascii")
-
     # ------------------------------------------------------------------ public
-    def predict(self, img: Image.Image, with_heatmap: bool = True) -> Prediction:
+    def predict(self, img: Image.Image) -> Prediction:
         t0 = time.perf_counter()
-        x, rgb = self.preprocess(img)
-        logits, cam = self.session.run(None, {"image": x})
-        p_raw, p_cal = self.calibrate(logits[0])
-        hm = self.heatmap(cam[0], rgb) if with_heatmap else None
+        x, _ = self.preprocess(img)
+        z, keep = self.logits_and_keep(x)
+        p_raw, p_cal = self.calibrate(np.atleast_1d(z[0]))
         return Prediction(
-            prob_raw=p_raw, prob_calibrated=p_cal, decision=self.decide(p_cal),
-            member_probs=[float(v) for v in 1.0 / (1.0 + np.exp(-np.clip(logits[0], -50, 50)))],
-            max_abs_logit=float(np.abs(logits[0]).max()),
-            heatmap_png_base64=hm, latency_ms=int(round((time.perf_counter() - t0) * 1000)),
+            prob_raw=p_raw, prob_calibrated=p_cal, decision=self.decide(p_cal), max_abs_logit=float(np.abs(z[0]).max()),
+            kept=True if keep is None else bool(keep[0]), latency_ms=int(round((time.perf_counter() - t0) * 1000)),
         )
-
-
-class FoundationModel(Model):
-    """DinoBloom-B (frozen, MarrLab) with linear heads in one ONNX graph (`python -m src.multilab export_web`): `logit`
-    (blast vs normal, trained on three labs) and, when present, `keep_logit` (its own cell filter, which then replaces
-    the shape rule and the separate ONNX filter). Used for smears only; it has no heatmap output."""
-
-    META = "dinobloom_meta.json"
-
-    def __init__(self, model_dir: str | Path):
-        super().__init__(model_dir, self.META)
-        self.outputs = [o.name for o in self.session.get_outputs()]
-        self.has_filter = "keep_logit" in self.outputs
-        self.keep_logit_threshold = float(self.meta.get("filter_threshold_logit", 0.0))
-
-    def logits_and_keep(self, xs: np.ndarray, batch: int = 32) -> tuple[np.ndarray, np.ndarray | None]:
-        zs, ks = [], []
-        for i in range(0, len(xs), batch):
-            out = dict(zip(self.outputs, self.session.run(None, {"image": xs[i:i + batch]})))
-            zs.append(out["logit"])
-            if self.has_filter:
-                ks.append(out["keep_logit"])
-        return np.concatenate(zs), (np.concatenate(ks) >= self.keep_logit_threshold) if self.has_filter else None
-
-    def cell_logits(self, xs: np.ndarray) -> np.ndarray:
-        return self.logits_and_keep(xs)[0][:, None]
