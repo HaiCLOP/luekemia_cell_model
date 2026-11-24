@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // dev only: lets the page hydrate when opened as http://127.0.0.1:3000 as well as localhost
   allowedDevOrigins: ["127.0.0.1"],
+  experimental: {
+    agentUpgrade: "security",
+  },
   async headers() {
     return [
       {
