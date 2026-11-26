@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import meta from "@/data/model_meta.json";
+import { ModelPicker } from "@/components/ModelPicker";
+import { DEFAULT_MODEL, type ModelName } from "@/lib/models";
 import { ACCEPTED, RUN_IN_BROWSER, SMEAR_MAX_BYTES, analyzeSmear, type SmearDecision, type SmearResponse } from "@/lib/api";
 
 const SAMPLES = [
@@ -27,6 +28,7 @@ const SCALE: Record<SmearResponse["scale_source"], string> = {
 export function SmearAnalyser() {
   const inputId = useId();
   const umId = useId();
+  const [model, setModel] = useState<ModelName>(DEFAULT_MODEL);
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [um, setUm] = useState("");
@@ -54,8 +56,8 @@ export function SmearAnalyser() {
     try {
       const um = umVal > 0 ? umVal : undefined;
       setResult(RUN_IN_BROWSER
-        ? await import("@/lib/browserSmear").then((m) => m.analyzeSmearInBrowser(f, um, setStatus))
-        : await analyzeSmear(f, um));
+        ? await import("@/lib/browserSmear").then((m) => m.analyzeSmearInBrowser(f, um, setStatus, model))
+        : await analyzeSmear(f, um, model));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -109,11 +111,7 @@ export function SmearAnalyser() {
             onChange={(e) => choose(e.target.files?.[0])} />
         </label>
 
-        <p className="small">
-          Cells are read by {meta.name}, a blood-cell foundation model (DinoBloom, Koch et al., 2024) with a classifier and a cell
-          filter trained on three labs (New Delhi, Johns Hopkins, Munich).
-          {RUN_IN_BROWSER && ` About ${Math.round(meta.onnx_mb)} MB to download, first use only.`}
-        </p>
+        <ModelPicker value={model} onChange={(m) => { setModel(m); setResult(null); }} disabled={busy} />
 
         <div className="field-row">
           <label htmlFor={umId} className="small">Pixel size in µm, if you know it (optional, makes the scale exact)</label>

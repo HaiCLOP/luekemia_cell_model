@@ -25,7 +25,7 @@ export default function SmearPage() {
         <p>
           The cell finder works well: it found 99.7% of white cells on 364 BCCD smears. The hard part is reading the cells on
           smears from a lab the model never saw. The model, MH51401102, was trained on three labs (New Delhi, Johns Hopkins,
-          Munich). On another hospital&rsquo;s leukemia smears it reaches ROC-AUC 0.83 (the retired single-lab model managed
+          Munich). On another hospital&rsquo;s leukemia smears it reaches ROC-AUC 0.83 (the single-lab MH51401122, still selectable below, managed
           0.57), and it calls 26% of healthy-donor lymphocytes leukemic. Sample B is one of those 26%: the model wrongly calls
           it leukemic (score 0.55, just over the line). That is better, not good. Its scores run low on a lab it has not seen,
           so a fixed cut-off misses most leukemia smears there; a new lab would need to set its own cut-off on a few smears it

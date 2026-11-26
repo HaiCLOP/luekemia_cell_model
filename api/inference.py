@@ -1,13 +1,18 @@
-"""CPU inference with ONNX Runtime. No PyTorch dependency.
+"""CPU inference with ONNX Runtime. No PyTorch dependency. One class serves both models:
 
-Model MH51401102 (formerly DinoBloom-B-3lab): frozen DinoBloom-B with two linear heads in one ONNX graph,
-`logit` (leukemic blast vs normal lymphocyte, trained on three labs) and `keep_logit` (its cell filter: keep =
-lymphocyte or blast). Pipeline: RGB -> resize 224x224 bilinear (antialiased) -> [0,1] -> ImageNet normalise ->
-logit -> temperature scaling -> refer-to-expert band. There is no heatmap output.
+  MH51401102 (default, models/model_meta.json; formerly DinoBloom-B-3lab): frozen DinoBloom-B with two linear heads
+      in one graph, `logit` [N] (blast vs normal, trained on three labs) and `keep_logit` [N] (its cell filter).
+  MH51401122 (models/MH51401122_meta.json): 5-seed EfficientNet-B0 ensemble trained on C-NMC only, outputs
+      `logits` [N, 5] and `cam` [N, 7, 7] (class activation map, returned as a heatmap).
+
+Pipeline: RGB -> resize 224x224 bilinear (antialiased) -> [0,1] -> ImageNet normalise -> logit(s) -> mean member
+probability -> temperature scaling -> refer-to-expert band.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
+import io
 import json
 import os
 import time
@@ -18,6 +23,12 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
+# perceptually ordered dark-to-bright ramp for the heatmap (approximates 'inferno')
+_LUT_STOPS = np.array([[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66],
+                       [245, 125, 21], [250, 193, 39], [252, 255, 164]], dtype=np.float32)
+_LUT = np.stack([np.interp(np.linspace(0, len(_LUT_STOPS) - 1, 256), np.arange(len(_LUT_STOPS)), _LUT_STOPS[:, c])
+                 for c in range(3)], axis=1).astype(np.uint8)
+
 
 @dataclass
 class Prediction:
@@ -27,6 +38,7 @@ class Prediction:
     latency_ms: int
     max_abs_logit: float = 0.0
     kept: bool = True            # the cell filter's verdict: False = not a lymphocyte or blast
+    heatmap_png_base64: str | None = None
 
 
 class Model:
@@ -80,7 +92,7 @@ class Model:
         zs, ks = [], []
         for i in range(0, len(xs), batch):
             out = dict(zip(self.outputs, self.session.run(None, {"image": xs[i:i + batch]})))
-            # "logit" [N] for MH51401102; a retired ensemble graph (first output "logits" [N, members]) also loads
+            # "logit" [N] for MH51401102; MH51401122's first output is "logits" [N, members]
             zs.append(out["logit"] if "logit" in out else out[self.outputs[0]])
             if self.has_filter:
                 ks.append(out["keep_logit"])
@@ -106,13 +118,28 @@ class Model:
         p_cal = float(1.0 / (1.0 + np.exp(-z / self.temperature)))
         return p_raw, p_cal
 
+    def heatmap(self, cam: np.ndarray, rgb: Image.Image) -> str:
+        c = cam - cam.min()
+        c = c / (c.max() + 1e-8)
+        cam_img = Image.fromarray((c * 255).astype(np.uint8)).resize(rgb.size, Image.BICUBIC)
+        heat = _LUT[np.asarray(cam_img)]
+        base = np.asarray(rgb, dtype=np.float32)
+        blend = (0.55 * base + 0.45 * heat.astype(np.float32)).clip(0, 255).astype(np.uint8)
+        buf = io.BytesIO()
+        Image.fromarray(blend).save(buf, format="PNG", optimize=True)
+        return base64.b64encode(buf.getvalue()).decode("ascii")
+
     # ------------------------------------------------------------------ public
-    def predict(self, img: Image.Image) -> Prediction:
+    def predict(self, img: Image.Image, with_heatmap: bool = True) -> Prediction:
         t0 = time.perf_counter()
-        x, _ = self.preprocess(img)
-        z, keep = self.logits_and_keep(x)
+        x, rgb = self.preprocess(img)
+        out = dict(zip(self.outputs, self.session.run(None, {"image": x})))
+        z = out["logit"] if "logit" in out else out[self.outputs[0]]
+        keep = out.get("keep_logit")
         p_raw, p_cal = self.calibrate(np.atleast_1d(z[0]))
+        hm = self.heatmap(out["cam"][0], rgb) if with_heatmap and "cam" in out else None
         return Prediction(
             prob_raw=p_raw, prob_calibrated=p_cal, decision=self.decide(p_cal), max_abs_logit=float(np.abs(z[0]).max()),
-            kept=True if keep is None else bool(keep[0]), latency_ms=int(round((time.perf_counter() - t0) * 1000)),
+            kept=True if keep is None else bool(keep[0] >= self.keep_logit_threshold),
+            heatmap_png_base64=hm, latency_ms=int(round((time.perf_counter() - t0) * 1000)),
         )

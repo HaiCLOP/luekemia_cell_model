@@ -11,8 +11,11 @@ import hashlib
 import io
 import logging
 import os
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+from typing import Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -70,8 +73,24 @@ limiter = Limiter(key_func=client_key)
 state: dict = {}
 
 
+DEFAULT_MODEL, SECOND_MODEL = "MH51401102", "MH51401122"
+SECOND_META = "MH51401122_meta.json"
+
+
+def _scorer(name: str) -> Model:
+    """MH51401102 is loaded at start-up; MH51401122 on first use (it is optional on a server)."""
+    if name == DEFAULT_MODEL:
+        return state["model"]
+    if "second" not in state:
+        if not (MODEL_DIR / SECOND_META).exists():
+            raise HTTPException(503, f"{SECOND_MODEL} is not installed on this server.")
+        state["second"] = Model(MODEL_DIR, SECOND_META)
+    return state["second"]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    state.pop("second", None)
     state["model"] = Model(MODEL_DIR)
     state["db"] = Database()
     try:
@@ -137,7 +156,8 @@ def active_model():
 @app.post("/predict", response_model=PredictResponse)
 @limiter.limit(RATE_LIMIT)
 async def predict(request: Request, file: UploadFile = File(...), store_image: bool = Form(False),
-                  session_id: str | None = Form(None, max_length=64)):
+                  session_id: str | None = Form(None, max_length=64),
+                  model: Literal["MH51401102", "MH51401122"] = Form(DEFAULT_MODEL)):
     data = await file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
         raise HTTPException(413, "Image is larger than 5 MB.")
@@ -160,27 +180,30 @@ async def predict(request: Request, file: UploadFile = File(...), store_image: b
     qc = check_input(img)
     if not qc.ok:
         raise InputRejected(qc.code, qc.reason)
+    m = await run_in_threadpool(_scorer, model)
 
     # ONNX Runtime is blocking CPU work; keep it off the event loop. The semaphore bounds concurrent runs.
     async with _infer_slots:
-        pred = await run_in_threadpool(state["model"].predict, img)
+        pred = await run_in_threadpool(m.predict, img)
     if not pred.kept:
         raise InputRejected("not_lymphoid",
                             "The model's cell filter says this is not a lymphocyte or blast (for example a neutrophil or "
                             "monocyte). The model only reads lymphocytes and blasts, so no score is given.")
-    if pred.max_abs_logit > state["model"].ood_logit:
+    if pred.max_abs_logit > m.ood_logit:
         raise InputRejected("out_of_distribution",
                             "The model's internal scores for this image are far outside anything it produced on its training "
                             "data, so any answer would be meaningless. Usually the stain colours, magnification or image "
                             "source differ from C-NMC.")
     sha = hashlib.sha256(data).hexdigest()
     db: Database = state["db"]
-    prediction_id = db.log_prediction(sha, pred, session_id)
-    stored = db.store_image(prediction_id, data, fmt) if store_image else False
-    m = state["model"]
+    if model == DEFAULT_MODEL:
+        prediction_id = db.log_prediction(sha, pred, session_id)
+        stored = db.store_image(prediction_id, data, fmt) if store_image else False
+    else:  # the registry's predictions belong to the active model; MH51401122 results are not logged or stored
+        prediction_id, stored = str(uuid.uuid4()), False
     return PredictResponse(prediction_id=prediction_id, model_version=m.meta["name"], prob_raw=round(pred.prob_raw, 4),
                            prob_calibrated=round(pred.prob_calibrated, 4), decision=pred.decision,
-                           band=Band(t_low=m.t_low, t_high=m.t_high),
+                           band=Band(t_low=m.t_low, t_high=m.t_high), heatmap_png_base64=pred.heatmap_png_base64,
                            latency_ms=pred.latency_ms, image_stored=stored)
 
 
@@ -191,9 +214,11 @@ SMEAR_MAX_BYTES = 10 * 1024 * 1024
 @limiter.limit(os.getenv("SMEAR_RATE_LIMIT", "10/minute"))
 async def analyze_smear(request: Request, file: UploadFile = File(...),
                         um_per_px: float | None = Form(None, gt=0.01, lt=5.0),
-                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000)):
-    """Find white cells in a stained peripheral-blood smear image, put each on C-NMC scale, let the model's cell
-    filter keep lymphocytes and blasts, score those, and summarise. Nothing is stored."""
+                        rbc_diameter_px: float | None = Form(None, gt=4, lt=2000),
+                        model: Literal["MH51401102", "MH51401122"] = Form(DEFAULT_MODEL)):
+    """Find white cells in a stained peripheral-blood smear image, put each on C-NMC scale, keep lymphocytes and
+    blasts (MH51401102: its own filter; MH51401122: shape rule and the separate cell-type filter), score those, and
+    summarise. Nothing is stored."""
     data = await file.read(SMEAR_MAX_BYTES + 1)
     if len(data) > SMEAR_MAX_BYTES:
         raise HTTPException(413, "Image is larger than 10 MB.")
@@ -210,8 +235,9 @@ async def analyze_smear(request: Request, file: UploadFile = File(...),
         raise HTTPException(415, f"Unsupported image type {fmt}. Use PNG, JPEG or BMP.")
     if min(img.size) < 128:
         raise InputRejected("insufficient_image_quality", "A smear image should be at least 128 x 128 px.")
+    scorer = await run_in_threadpool(_scorer, model)
     async with _infer_slots:
-        out = await run_in_threadpool(analyse_smear, state["model"], img, um_per_px, rbc_diameter_px)
+        out = await run_in_threadpool(analyse_smear, scorer, img, um_per_px, rbc_diameter_px)
     return out
 
 

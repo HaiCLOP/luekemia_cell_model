@@ -18,6 +18,13 @@ def test_browser_model_metadata_matches_the_deployed_model():
         assert web[k] == real[k], k
 
 
+def test_browser_second_model_metadata_matches():
+    web = json.loads((ROOT / "web/src/data/MH51401122_meta.json").read_text())
+    real = json.loads((ROOT / "models/MH51401122_meta.json").read_text())
+    for k in ("name", "onnx_sha256", "onnx_file", "temperature", "t_low", "t_high", "ood_max_abs_logit", "input"):
+        assert web[k] == real[k], k
+
+
 def test_browser_colour_and_filter_settings_match():
     assert json.loads((ROOT / "web/src/data/cnmc_stain.json").read_text()) == json.loads((ROOT / "models/cnmc_stain.json").read_text())
     web = json.loads((ROOT / "web/src/data/cell_type_meta.json").read_text())

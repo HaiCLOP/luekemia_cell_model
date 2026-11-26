@@ -1,3 +1,5 @@
+import type { ModelName } from "@/lib/models";
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 /** Without an API address (the free static deployment) the model runs in the visitor's browser. */
 export const RUN_IN_BROWSER = !API_URL || process.env.NEXT_PUBLIC_INFERENCE === "browser";
@@ -13,6 +15,7 @@ export interface PredictResponse {
   prob_calibrated: number;
   decision: Decision;
   band: { t_low: number; t_high: number };
+  heatmap_png_base64?: string | null;
   latency_ms: number;
   image_stored: boolean;
   disclaimer: string;
@@ -38,10 +41,11 @@ async function errorText(res: Response): Promise<string> {
   return `The analysis service returned ${res.status}.`;
 }
 
-export async function predict(file: File, storeImage: boolean): Promise<PredictResponse> {
+export async function predict(file: File, storeImage: boolean, model: ModelName): Promise<PredictResponse> {
   const body = new FormData();
   body.append("file", file);
   body.append("store_image", storeImage ? "true" : "false");
+  body.append("model", model);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/predict`, { method: "POST", body });
@@ -121,10 +125,11 @@ export interface SmearResponse {
 
 export const SMEAR_MAX_BYTES = 10 * 1024 * 1024;
 
-export async function analyzeSmear(file: File, umPerPx?: number): Promise<SmearResponse> {
+export async function analyzeSmear(file: File, umPerPx: number | undefined, model: ModelName): Promise<SmearResponse> {
   const body = new FormData();
   body.append("file", file);
   if (umPerPx) body.append("um_per_px", String(umPerPx));
+  body.append("model", model);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/analyze-smear`, { method: "POST", body });

@@ -6,7 +6,8 @@ import results from "@/data/results.json";
 import { RESULT_KEY, RUN_IN_BROWSER, sendFeedback, type StoredResult } from "@/lib/api";
 
 const pct = (v: number) => `${(100 * v).toFixed(1)}%`;
-const BAND = results.deployed.band_out_of_lab;
+const BAND = results.deployed.band_out_of_lab;     // MH51401102, out of lab
+const BAND_122 = results.band.band;                 // MH51401122, C-NMC validation subjects (nested cross-fit)
 
 const COPY = {
   normal: {
@@ -135,6 +136,12 @@ export default function ResultPage() {
             <img src={data.previewDataUrl} alt={`The uploaded cell image, ${data.fileName}`} />
             <figcaption>Specimen · {data.fileName}</figcaption>
           </figure>
+          {r.heatmap_png_base64 && (
+            <figure>
+              <img src={`data:image/png;base64,${r.heatmap_png_base64}`} alt="Heatmap over the cell: brighter areas pushed the score towards leukemic" />
+              <figcaption>Class activation map, averaged over the five ensemble members · brighter = more influence</figcaption>
+            </figure>
+          )}
         </div>
       </article>
 
@@ -142,9 +149,14 @@ export default function ResultPage() {
         <h2 id="refer-title" style={{ fontSize: 18, margin: 0 }}>What “refer to expert” means</h2>
         <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
           The model has three answers, not two. Scores between {r.band.t_low.toFixed(2)} and {r.band.t_high.toFixed(2)} are where it has been wrong
-          most often, so it hands those cells to a haematologist. On cells from labs it was not trained on, this sent {pct(BAND.referral_rate)} of
-          cells to review and called {pct(BAND.miss_rate)} of leukemic cells normal. The score is a research output for one cropped cell, not a
-          probability that a person has leukemia.
+          most often, so it hands those cells to a haematologist.{" "}
+          {r.model_version === "MH51401122"
+            ? <>On 18 C-NMC validation subjects this sent {pct(BAND_122.referral_rate)} of cells to review and called {pct(BAND_122.miss_rate)} of
+              leukemic cells normal. MH51401122 learned from one lab only: on other labs&apos; cells it does much worse, and its heatmap shows what
+              it used, not proof that it used the right thing (it leans heavily on cell size).</>
+            : <>On cells from labs it was not trained on, this sent {pct(BAND.referral_rate)} of cells to review and called {pct(BAND.miss_rate)} of
+              leukemic cells normal.</>}{" "}
+          The score is a research output for one cropped cell, not a probability that a person has leukemia.
         </p>
       </section>
 

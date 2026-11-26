@@ -1,8 +1,8 @@
-"""Export the RETIRED 5-seed EfficientNet-B0 ensemble (MH51401122) to ONNX, for reproducing earlier experiments.
-The deployed model is MH51401102 (python -m src.multilab export_web). This writes to its own folder by default so
-it can never replace models/model_meta.json.
+"""Export the 5-seed EfficientNet-B0 ensemble (MH51401122, the second model) to ONNX.
+The default model is MH51401102 (python -m src.multilab export_web). The metadata is written as <name>_meta.json, so
+this can never replace models/model_meta.json.
 
-Usage: python -m src.export [--name MH51401122] [--out models/retired_effb0]
+Usage: python -m src.export [--name MH51401122] [--out models]
 
 Graph inputs:  image  float32 [B, 3, 224, 224]  (ImageNet-normalised, same as training eval transform)
 Graph outputs: logits float32 [B, 5]             (one raw logit per ensemble member)
@@ -56,7 +56,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", default="MH51401122")
     ap.add_argument("--prefix", default="effb0_main", help="run-name prefix of the five seed checkpoints")
-    ap.add_argument("--out", default="models/retired_effb0", help="output folder (a second model goes in its own folder)")
+    ap.add_argument("--out", default="models", help="output folder")
     args = ap.parse_args()
     cfg = load_config()
     seeds = cfg["calibration"]["ensemble_seeds"]
@@ -117,7 +117,7 @@ def main() -> None:
         "exported": datetime.now(timezone.utc).isoformat(),
         "disclaimer": cfg["disclaimer"],
     }
-    (out_dir / "model_meta.json").write_text(json.dumps(meta, indent=2, default=float))
+    (out_dir / f"{args.name}_meta.json").write_text(json.dumps(meta, indent=2, default=float))
     if out_dir != resolve("models"):  # a second model folder needs the C-NMC colour statistics for smear crops too
         shutil.copy(resolve("models") / "cnmc_stain.json", out_dir / "cnmc_stain.json")
 

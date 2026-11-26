@@ -19,6 +19,7 @@ class PredictResponse(BaseModel):
     prob_calibrated: float = Field(description="Temperature-scaled probability used for the decision")
     decision: Literal["leukemic", "normal", "refer_to_expert"]
     band: Band
+    heatmap_png_base64: str | None = Field(default=None, description="MH51401122 only: class activation map over the resized cell, PNG, base64")
     latency_ms: int
     image_stored: bool = False
     disclaimer: str = DISCLAIMER

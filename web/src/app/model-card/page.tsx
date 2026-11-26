@@ -99,7 +99,7 @@ export default async function ModelCard() {
           <div className="card table-wrap">
             <h3 className="eyebrow">Outside tests · used for nothing else</h3>
             <table>
-              <thead><tr><th scope="col">Test</th><th scope="col" className="num">{m.name}</th><th scope="col" className="num">{old} (retired)</th></tr></thead>
+              <thead><tr><th scope="col">Test</th><th scope="col" className="num">{m.name}</th><th scope="col" className="num">{old} (C-NMC only)</th></tr></thead>
               <tbody>
                 <tr className="hl"><td>ALL-IDB2 (Milan), {idb.cells_cut_out} cells, ROC-AUC</td><td className="num">{f3(idb.roc_auc)} <span className="ci">{ci(idb.roc_auc_ci95)}</span></td><td className="num">{f3(idb.retired_MH51401122_roc_auc)}</td></tr>
                 <tr><td>Taleqani ALL smears, about 2,700 smears, ROC-AUC</td><td className="num">{f3(dep.taleqani_smear_roc_auc)}</td><td className="num">{f3(dep.taleqani_smear_roc_auc_retired)}</td></tr>
@@ -115,12 +115,12 @@ export default async function ModelCard() {
         </div>
       </section>
 
-      <section className="note" style={{ marginTop: 56 }} aria-labelledby="retired">
-        <h2 id="retired" style={{ fontSize: 18, margin: 0 }}>Below: the C-NMC study of the retired model {old}</h2>
+      <section className="note" style={{ marginTop: 56 }} aria-labelledby="second">
+        <h2 id="second" style={{ fontSize: 18, margin: 0 }}>Below: the C-NMC study of the second model, {old}</h2>
         <p style={{ marginBottom: 0, color: "var(--ink-2)" }}>
           {old} ({results.retired.architecture}) was trained and tested on C-NMC alone. It scored well there but did not transfer
-          to other labs, which is why it was replaced. Its study is kept as the record of how the data were audited, split and
-          evaluated: {d.images.toLocaleString("en-IN")} cells from {d.subjects} independent subjects after removing {d.corrupt_removed} corrupt
+          to other labs, which is why it is no longer the default. It can still be chosen on the cell and smear pages, and it is the
+          only one that draws a heatmap. Its study is the record of how the data were audited, split and evaluated: {d.images.toLocaleString("en-IN")} cells from {d.subjects} independent subjects after removing {d.corrupt_removed} corrupt
           files and {d.duplicates_removed} copies, split by subject (train {d.splits.train.subjects}, validation {d.splits.val.subjects}, test {d.splits.test.subjects}).
         </p>
       </section>

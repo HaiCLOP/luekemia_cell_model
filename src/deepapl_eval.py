@@ -95,8 +95,7 @@ def main() -> dict:
     from src.vision.segment import CNMC_RBC_PX, find_white_cells, to_cnmc
 
     models = resolve("models")
-    # the retired ensemble MH51401122 is re-created with `python -m src.export` (models/retired_effb0)
-    ens, dino, filt = Model(models / "retired_effb0"), Model(models), CellTypeFilter(models)
+    ens, dino, filt = Model(models, "MH51401122_meta.json"), Model(models), CellTypeFilter(models)
     stain = json.loads((models / "cnmc_stain.json").read_text())
     df = tiles()
     rng = np.random.default_rng(0)

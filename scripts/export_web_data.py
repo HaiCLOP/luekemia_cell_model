@@ -29,7 +29,7 @@ def ci(s: str):
     return [float(m[0]), float(m[1])] if len(m) == 2 else None
 
 
-RETIRED_META = REP / "final" / "retired_MH51401122_model_meta.json"
+SECOND_META = ROOT / "models" / "MH51401122_meta.json"
 
 
 def _final_test(sha: str):
@@ -46,8 +46,8 @@ def _final_test(sha: str):
 
 def main() -> None:
     cfg = load_config()
-    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())       # deployed: MH51401102
-    retired = json.loads(RETIRED_META.read_text())                              # MH51401122, the C-NMC study below
+    meta = json.loads((ROOT / "models" / "model_meta.json").read_text())       # default model: MH51401102
+    retired = json.loads(SECOND_META.read_text())                               # second model MH51401122, the C-NMC study below
     triage = json.loads((REP / "triage" / "summary.json").read_text())
     expl = json.loads((REP / "explain" / "summary.json").read_text())
 
@@ -70,7 +70,7 @@ def main() -> None:
     bm = binary_metrics(p_ens, y_val, n_bins=cfg["calibration"]["ece_bins"])
     iters = cfg["eval"]["bootstrap_iters"]
     models.append({
-        "name": "MH51401122 (retired): 5-seed EfficientNet-B0 ensemble", "deployed": True,
+        "name": "MH51401122: 5-seed EfficientNet-B0 ensemble", "deployed": True,
         "pr_auc": bm["pr_auc"], "pr_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["pr_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
         "roc_auc": bm["roc_auc"], "roc_auc_ci": list(cluster_bootstrap(lambda a, b: binary_metrics(a, b)["roc_auc"], p_ens, y_val, g_val, iters=iters)[1:]),
         "recall": bm["recall"], "specificity": bm["specificity"], "ece": bm["ece"]})
@@ -106,7 +106,7 @@ def main() -> None:
                      "taleqani_smear_roc_auc": meta["metrics"]["taleqani_smear_paired_vs_retired_MH51401122"]["auc_new"],
                      "taleqani_smear_roc_auc_retired": meta["metrics"]["taleqani_smear_paired_vs_retired_MH51401122"]["auc_old"],
                      "bccd_healthy_called_leukemic": meta["metrics"]["bccd_healthy_called_leukemic"]},
-        # everything from here down is the C-NMC study of the retired model
+        # everything from here down is the C-NMC study of MH51401122 (key name kept for the pages that read it)
         "retired": {"name": retired["name"], "architecture": retired["architecture"],
                     "t_low": retired["t_low"], "t_high": retired["t_high"]},
         "data": {"images": len(rows), "subjects": len({r["group_id"] for r in rows}),

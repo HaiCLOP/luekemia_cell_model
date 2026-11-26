@@ -54,7 +54,7 @@ export default function Home() {
           <div>
             <span className="label">Another hospital&apos;s smears</span>
             <div className="v">{d.taleqani_smear_roc_auc.toFixed(3)}</div>
-            <div className="s">ROC-AUC per smear (Taleqani ALL); {d.taleqani_smear_roc_auc_retired.toFixed(3)} for the retired model</div>
+            <div className="s">ROC-AUC per smear (Taleqani ALL); {d.taleqani_smear_roc_auc_retired.toFixed(3)} for the C-NMC-only MH51401122</div>
           </div>
           <div>
             <span className="label">Leave one lab out</span>

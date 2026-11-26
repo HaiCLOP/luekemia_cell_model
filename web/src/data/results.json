@@ -122,7 +122,7 @@
   },
   "models": [
     {
-      "name": "MH51401122 (retired): 5-seed EfficientNet-B0 ensemble",
+      "name": "MH51401122: 5-seed EfficientNet-B0 ensemble",
       "deployed": true,
       "pr_auc": 0.9737394217322837,
       "pr_auc_ci": [

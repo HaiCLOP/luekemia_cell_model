@@ -60,8 +60,8 @@ export default function Method() {
           on validation subjects: below the lower one the cell is called normal, above the upper one leukemic, and in between it goes to a
           person. Fitted on two thirds of the validation subjects and scored on the remaining third (rotated, nested), the band referred {pct(b.band.referral_rate)} of cells and cut missed leukemic cells from{" "}
           {pct(b.fixed.miss_rate)} to {pct(b.band.miss_rate)}, while false alarms stayed at {pct(b.band.false_alarm_rate)}. Referring the same
-          share of cells at random barely helps ({pct(b.random.miss_rate)} missed). These figures are from the C-NMC study of the retired
-          model {results.retired.name}; the deployed model&apos;s band was fitted the same way on out-of-lab predictions (section 3).
+          share of cells at random barely helps ({pct(b.random.miss_rate)} missed). These figures are from the C-NMC study of
+          {results.retired.name}, the C-NMC-only model; the default model&apos;s band was fitted the same way on out-of-lab predictions (section 3).
         </p>
         <figure className="figure" style={{ marginTop: 20 }}>
           <img src="/figures/referral_band.png" alt="Histogram of calibrated scores for normal and leukemic validation cells, with the referral band shaded between 0.2 and 0.5." />

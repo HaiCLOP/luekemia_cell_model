@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { ACCEPTED, MAX_BYTES, RESULT_KEY, RUN_IN_BROWSER, predict, previewDataUrl, type StoredResult } from "@/lib/api";
-import { MODEL_MB } from "@/lib/browserModel";
+import { ModelPicker } from "@/components/ModelPicker";
+import { DEFAULT_MODEL, MODELS, type ModelName } from "@/lib/models";
 
 const SAMPLES = [
   { file: "/samples/sample-leukemic.png", label: "Leukemic cell" },
@@ -22,6 +23,7 @@ export function Uploader() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [download, setDownload] = useState<number | null>(null);
+  const [model, setModel] = useState<ModelName>(DEFAULT_MODEL);
 
   async function choose(f: File | undefined | null) {
     setError(null);
@@ -43,8 +45,8 @@ export function Uploader() {
     setError(null);
     try {
       const infer = RUN_IN_BROWSER
-        ? import("@/lib/browserModel").then((m) => m.predictInBrowser(f, (x) => setDownload(x < 1 ? x : null)))
-        : predict(f, store);
+        ? import("@/lib/browserModel").then((m) => m.predictInBrowser(f, (x) => setDownload(x < 1 ? x : null), model))
+        : predict(f, store, model);
       const [response, dataUrl] = await Promise.all([infer, previewForFile]);
       const stored: StoredResult = { response, previewDataUrl: dataUrl, fileName: f.name, createdAt: new Date().toISOString() };
       sessionStorage.setItem(RESULT_KEY, JSON.stringify(stored));
@@ -111,10 +113,12 @@ export function Uploader() {
         </div>
       )}
 
+      <ModelPicker value={model} onChange={setModel} disabled={busy} />
+
       {RUN_IN_BROWSER ? (
         <p className="small" style={{ marginTop: 14 }}>
           The model runs inside your browser: your image never leaves this device. The first analysis downloads the model
-          (about {MODEL_MB} MB, once); after that it is cached.
+          (about {MODELS[model].mb} MB, once); after that it is cached.
         </p>
       ) : (
         <label className="check">
@@ -134,7 +138,7 @@ export function Uploader() {
         )}
         <span role="status" aria-live="polite" className="small">
           {!busy ? "" : download != null
-            ? `Downloading the model, ${Math.round(100 * download)}% (about ${MODEL_MB} MB, only the first time)`
+            ? `Downloading the model, ${Math.round(100 * download)}% (about ${MODELS[model].mb} MB, only the first time)`
             : RUN_IN_BROWSER ? "Running the model in your browser, a few seconds." : "Running the model, usually under a second."}
         </span>
       </div>

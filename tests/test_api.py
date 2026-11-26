@@ -42,6 +42,22 @@ class FakeSession:
         return [np.full(n, self.logit, np.float32), np.full(n, self.keep_logit, np.float32)]
 
 
+class FakeEnsemble:
+    """MH51401122's graph: five member logits and a CAM."""
+
+    def __init__(self, logit: float):
+        self.logit = logit
+
+    def get_outputs(self):
+        return [_Out("logits"), _Out("cam")]
+
+    def run(self, _outputs, feeds):
+        x = feeds["image"]
+        cam = np.zeros((x.shape[0], 7, 7), np.float32)
+        cam[:, 3, 3] = 1.0
+        return [np.full((x.shape[0], 5), self.logit, np.float32), cam]
+
+
 @pytest.fixture(scope="module")
 def model_dir():
     d = Path(tempfile.mkdtemp())
@@ -53,6 +69,10 @@ def model_dir():
             "onnx_sha256": hashlib.sha256(blob).hexdigest(), "exported": "2026-01-01T00:00:00Z",
             "filter_threshold_logit": 0.0, "ood_max_abs_logit": 12.9}
     (d / "model_meta.json").write_text(json.dumps(meta))
+    (d / "fake122.onnx").write_bytes(b"fake ensemble")
+    meta2 = {**meta, "name": "MH51401122", "onnx_file": "fake122.onnx", "onnx_sha256": hashlib.sha256(b"fake ensemble").hexdigest()}
+    del meta2["filter_threshold_logit"]
+    (d / "MH51401122_meta.json").write_text(json.dumps(meta2))
     return d
 
 
@@ -65,7 +85,7 @@ def client(model_dir):
 
     main.MODEL_DIR = model_dir
     orig = Model._session
-    Model._session = staticmethod(lambda path, opts: FakeSession(FAKE_LOGIT))
+    Model._session = staticmethod(lambda path, opts: FakeEnsemble(FAKE_LOGIT) if "122" in str(path) else FakeSession(FAKE_LOGIT))
     try:
         with TestClient(main.app) as c:
             yield c
@@ -137,6 +157,22 @@ def test_out_of_contract_images_get_no_score(client, data, code):
     assert r.status_code == 422, r.text
     j = r.json()
     assert j["code"] == code and "decision" not in j and j["disclaimer"] == DISCLAIMER
+
+
+def test_second_model_can_be_chosen(client):
+    r = client.post("/predict", files={"file": ("c.png", cell(), "image/png")}, data={"model": "MH51401122"})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["model_version"] == "MH51401122" and j["image_stored"] is False
+    Image.open(io.BytesIO(base64.b64decode(j["heatmap_png_base64"]))).verify()
+    assert post(client, cell()).json()["heatmap_png_base64"] is None          # the default model has no heatmap
+    assert client.post("/predict", files={"file": ("c.png", cell(), "image/png")}, data={"model": "nope"}).status_code == 422
+    # smears with MH51401122: lymphoid-looking cells only (the lobed one is skipped by the shape rule)
+    j = client.post("/analyze-smear", files={"file": ("s.png", _smear_png(n_wbc=3, lobed=1), "image/png")},
+                    data={"model": "MH51401122"}).json()
+    assert j["model_version"] == "MH51401122" and j["summary"]["cells_found"] == 4
+    lobed = [c for c in j["cells"] if not c["lymphoid_like"]]
+    assert lobed and all(c["decision"] == "not_scored" for c in lobed)
 
 
 def test_cell_the_filter_drops_gets_no_score(client):
