@@ -24,9 +24,9 @@ export const MODELS: Record<ModelName, ModelInfo> = {
     name: "MH51401102",
     label: "MH51401102 · three labs (default)",
     what: `Blood-cell foundation model (DinoBloom) with a classifier and a cell filter trained on three labs. ROC-AUC ${meta102.metrics.all_idb2.roc_auc.toFixed(2)} on ALL-IDB2, a lab it never saw.`,
-    // The Hugging Face copy still carries its pre-rename file name; the bytes are MH51401102's and are checked against
-    // model_meta.json's SHA-256 before use. Point NEXT_PUBLIC_MODEL_URL at MH51401102.onnx once it is uploaded there.
-    url: process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/dinobloom_b_3lab.onnx",
+    // Checked against model_meta.json's SHA-256 before use. (The same bytes are also on Hugging Face under their
+    // pre-rename name, dinobloom_b_3lab.onnx, for browsers that cached that URL.)
+    url: process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/MH51401102.onnx",
     sha256: meta102.onnx_sha256,
     mb: Math.round(meta102.onnx_mb),
     input: meta102.input,
