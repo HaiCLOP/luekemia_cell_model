@@ -23,9 +23,8 @@ export const MODELS: Record<ModelName, ModelInfo> = {
   MH51401102: {
     name: "MH51401102",
     label: "MH51401102 · three labs (default)",
-    what: `Blood-cell foundation model (DinoBloom) with a classifier and a cell filter trained on three labs. ROC-AUC ${meta102.metrics.all_idb2.roc_auc.toFixed(2)} on ALL-IDB2, a lab it never saw.`,
-    // Checked against model_meta.json's SHA-256 before use. (The same bytes are also on Hugging Face under their
-    // pre-rename name, dinobloom_b_3lab.onnx, for browsers that cached that URL.)
+    what: `Blood-cell foundation model with a classifier and a cell filter trained on three labs. ROC-AUC ${meta102.metrics.all_idb2.roc_auc.toFixed(2)} on ALL-IDB2, a lab it never saw.`,
+    // Checked against model_meta.json's SHA-256 before use.
     url: process.env.NEXT_PUBLIC_MODEL_URL || "https://huggingface.co/Velion/MH51401122/resolve/main/MH51401102.onnx",
     sha256: meta102.onnx_sha256,
     mb: Math.round(meta102.onnx_mb),

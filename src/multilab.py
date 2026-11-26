@@ -551,7 +551,7 @@ def export_web() -> dict:
              "filter_agreement": float(((kq >= thr_logit) == (kr >= thr_logit)).mean())}
     lolo_res = json.loads((OUT / "lolo_results.json").read_text())["labs"]
     tal = json.loads((OUT / "outside_results_b_dbfilter.json").read_text())
-    meta = {"name": "MH51401102", "former_name": "DinoBloom-B-3lab",
+    meta = {"name": "MH51401102",
             "architecture": "DinoBloom-B (frozen DINOv2 ViT-B/14, MarrLab) + logistic regression on three labs + DinoBloom cell filter",
             "task": "leukemic blast vs normal lymphocyte",
             "training_labs": ["C-NMC 2019 (AIIMS New Delhi)", "DeepAPL (Johns Hopkins)", "AML-Cytomorphology_LMU (LMU Munich)"],

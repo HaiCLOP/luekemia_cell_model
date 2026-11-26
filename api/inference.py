@@ -1,6 +1,6 @@
 """CPU inference with ONNX Runtime. No PyTorch dependency. One class serves both models:
 
-  MH51401102 (default, models/model_meta.json; formerly DinoBloom-B-3lab): frozen DinoBloom-B with two linear heads
+  MH51401102 (default, models/model_meta.json): frozen DinoBloom-B with two linear heads
       in one graph, `logit` [N] (blast vs normal, trained on three labs) and `keep_logit` [N] (its cell filter).
   MH51401122 (models/MH51401122_meta.json): 5-seed EfficientNet-B0 ensemble trained on C-NMC only, outputs
       `logits` [N, 5] and `cam` [N, 7, 7] (class activation map, returned as a heatmap).

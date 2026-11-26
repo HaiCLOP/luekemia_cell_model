@@ -1,6 +1,5 @@
 {
   "name": "MH51401102",
-  "former_name": "DinoBloom-B-3lab",
   "architecture": "DinoBloom-B (frozen DINOv2 ViT-B/14, MarrLab) + logistic regression on three labs + DinoBloom cell filter",
   "task": "leukemic blast vs normal lymphocyte",
   "training_labs": [
