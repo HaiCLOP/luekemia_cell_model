@@ -17,10 +17,13 @@ Checked 2026-11-09. Raw data is never committed to this repository.
 ## ALL-IDB2 (external evaluation only)
 
 - Source: University of Milan, https://scotti.di.unimi.it/all/ (access by signed application form).
+- Access: signed form sent 2026-11-09; granted by Prof. Fabio Scotti on 2026-11-23 (download links by email).
 - Terms (form ver.2): no redistribution, publication or dissemination in whole or in part without the maintainer's
   authorization; internal non-commercial research only; must be cited; not for diagnostic use.
 - Consequences for this project: ALL-IDB images never appear in the repo, web app, Hugging Face, figures or the paper.
   Only aggregate metrics are reported. Never used for training or threshold selection.
+- Evaluated once on 2026-11-24 (260 images; 255 cells cut out): results in `models/model_meta.json` under
+  `metrics.all_idb2` and on the website's model card, with the citation below.
 - Citation: Labati, R. D., Piuri, V., & Scotti, F. (2011). ALL-IDB: The acute lymphoblastic leukemia image database
   for image processing. 18th IEEE International Conference on Image Processing (ICIP), 2045-2048.
 

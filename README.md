@@ -100,7 +100,12 @@ Images are never stored unless the user opts in (private bucket, deleted after 2
 ## Data
 
 C-NMC 2019, The Cancer Imaging Archive, CC BY 3.0. Mourya S., Kant S., Kumar P., Gupta A., Gupta R. (2019).
-https://doi.org/10.7937/tcia.2019.dc64i46r. See [DATA_LICENSE.md](DATA_LICENSE.md). ALL-IDB2 (external test only) is
-used under its own terms and is never redistributed. No raw data or weights are committed.
+https://doi.org/10.7937/tcia.2019.dc64i46r. See [DATA_LICENSE.md](DATA_LICENSE.md).
+
+ALL-IDB2 (external test only, University of Milan, https://scotti.di.unimi.it/all/) is used under its own terms: no ALL-IDB
+image is included, redistributed or shown anywhere in this project; only aggregate metrics are reported.
+Labati R. D., Piuri V., Scotti F. (2011). ALL-IDB: The acute lymphoblastic leukemia image database for image processing. 18th IEEE International Conference on Image Processing (ICIP), 2045-2048.
+
+No raw data or weights are committed.
 
 Author: Arnav Srivastava, HaiCLOP Labs.

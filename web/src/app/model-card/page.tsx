@@ -250,7 +250,9 @@ export default async function ModelCard() {
         </ul>
         <p className="small" style={{ marginBottom: 0 }}>
           Data citation: Mourya S., Kant S., Kumar P., Gupta A., Gupta R. (2019). ALL Challenge dataset of ISBI 2019 (C-NMC 2019).
-          The Cancer Imaging Archive. doi:10.7937/tcia.2019.dc64i46r
+          The Cancer Imaging Archive. doi:10.7937/tcia.2019.dc64i46r. External test: Labati R. D., Piuri V., Scotti F. (2011).
+          ALL-IDB: The acute lymphoblastic leukemia image database for image processing. IEEE ICIP, 2045-2048 (University of
+          Milan; aggregate metrics only, no ALL-IDB images are shown).
         </p>
       </section>
     </div>

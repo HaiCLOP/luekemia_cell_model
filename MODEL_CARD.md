@@ -438,13 +438,17 @@ labs, with patient-level splits (see `docs/data_request_guide.md`).
 
 ## Limitations
 
-- One dataset, one acquisition setup; ALL-IDB2 access was never granted. The outside smear tests above (Taleqani, BCCD)
-  show the model does not transfer to other labs.
+- One dataset, one acquisition setup. On ALL-IDB2 (University of Milan), a lab it never saw, this model reached ROC-AUC
+  0.728 (255 cells, image-level 95% CI 0.666 to 0.787) and called 101 of 130 normal cells leukemic; the three-lab model
+  MH51401102 reached 0.933 on the same cells. The outside smear tests above (Taleqani, BCCD) show the same failure to
+  transfer to other labs.
 - 92 independent subjects; most differences between models are within the confidence intervals.
 
 ## Citation
 
 Data: Mourya S., Kant S., Kumar P., Gupta A., Gupta R. (2019). ALL Challenge dataset of ISBI 2019 (C-NMC 2019) (Version 1).
 The Cancer Imaging Archive. https://doi.org/10.7937/tcia.2019.dc64i46r
+
+External test data (aggregate metrics only; no images used in training or shown): Labati R. D., Piuri V., Scotti F. (2011). ALL-IDB: The acute lymphoblastic leukemia image database for image processing. 18th IEEE International Conference on Image Processing (ICIP), 2045-2048.
 
 Weights are released under CC BY 4.0 with the data attribution above.
